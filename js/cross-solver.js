@@ -1,15 +1,16 @@
-// js/cross-solver.js - SMART PRIORITY VERSION
-let lastMove = ""; // Remember what we just said
+// js/cross-solver.js
+
+// --- MEMORY VARIABLE (MUST BE OUTSIDE THE FUNCTION) ---
+let lastMove = ""; 
+// -----------------------------------------------------
+
 function getCrossMove(cube) {
-    // 1. Check if Cross is Completely Done
+    // 1. Check if Cross is Done
     let solvedCount = 0;
-    // Check Down indices 1,3,5,7 (which are UP in our inverted logic)
     [1, 3, 5, 7].forEach(i => { if (cube.up[i] === 'W') solvedCount++; });
     if (solvedCount === 4) return "DONE";
 
-    // 2. DEFINE THE 4 POSITIONS
-    // We are holding Yellow Up, so we check the 'down' face of the virtual cube.
-    // Map: DownIndex -> [SideFace, SideIndex]
+    // 2. DEFINE POSITIONS (Down Face / Yellow Side)
     const positions = [
         { id: 1, sideFace: 'front', sideIdx: 7, move: 'F2' },
         { id: 5, sideFace: 'right', sideIdx: 7, move: 'R2' },
@@ -17,39 +18,40 @@ function getCrossMove(cube) {
         { id: 3, sideFace: 'left',  sideIdx: 7, move: 'L2' }
     ];
 
-    // 3. PRIORITY 1: Look for a PERFECT MATCH
-    // (White is on Top, and the Side Sticker matches the Center)
-    
+    // 3. PRIORITY 1: Match & Solve
     for (let pos of positions) {
-        // Is there a white petal here?
         if (cube.down[pos.id] === 'W') {
-            // Check the side sticker color
             let sideColor = cube[pos.sideFace][pos.sideIdx];
-            let centerColor = cube[pos.sideFace][4]; // Center is always index 4
+            let centerColor = cube[pos.sideFace][4];
             
-            // If it matches, DO IT NOW!
             if (sideColor === centerColor) {
-                return pos.move; // e.g., "F2"
+                // --- THE SAFETY CHECK ---
+                if (lastMove === pos.move) {
+                     // If we just said "L2" and it's still there, 
+                     // force a rotation to break the loop!
+                     console.log("Loop detected! Forcing rotation.");
+                     lastMove = "D";
+                     return "D"; 
+                }
+                
+                lastMove = pos.move; // Save memory
+                return pos.move;     // Return "L2"
             }
         }
     }
 
-    // 4. PRIORITY 2: If no matches, is there ANY white petal at all?
+    // 4. PRIORITY 2: Rotate to find match
     let petalFound = false;
     for (let pos of positions) {
         if (cube.down[pos.id] === 'W') petalFound = true;
     }
 
-    // 5. DECISION
     if (petalFound) {
-        // We have white petals, but none line up with their centers yet.
-        // So we MUST rotate to find a match.
-        // We return "D" (which main.js translates to "Rotate Top")
-        lastMove = "D"
+        // If we keep rotating, eventually we might loop. 
+        // But usually "D" is safe.
+        lastMove = "D";
         return "D";
-    } else {
-        // No white petals on the yellow face?
-        // They must be stuck in the middle layer.
-        return "Check Middle Layer";
     }
+
+    return "Check Middle Layer";
 }
