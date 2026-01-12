@@ -157,12 +157,19 @@ function scanFace() {
                 scanBtn.className = "w-full bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg";
                 scanBtn.onclick = startWhiteCross; 
                 speak("Daisy found. Let's solve the cross.");
+            // --- PATH B: NO DAISY -> START DAISY INSTRUCTIONS ---
             } else {
                 instructionText.innerText = "Scanning Complete! Let's make the Daisy.";
                 scanBtn.innerText = "START DAISY";
                 scanBtn.className = "w-full bg-yellow-500 text-black font-bold py-4 rounded-xl shadow-lg";
+                
                 scanBtn.onclick = startDaisySolver;
-                speak("Scanning complete. Let's make the Daisy.");
+                
+                // UPDATED SPEECH: Detailed instructions
+                speak(
+                    "Make a daisy by keeping the yellow block in the center, and 4 white petals on the top, bottom, right, and left of that yellow middle piece.", 
+                    "Scanning Complete! Make the Daisy." // Short text for screen
+                );
             }
 
         } catch (error) {
@@ -276,12 +283,19 @@ function startDaisySolver() {
         return;
     }
 
+    // ... inside startDaisySolver ...
+
     // 2. If not solved, switch to "Manual Mode"
-    // We do NOT calculate moves here because the user will mess up the orientation.
-    instructionText.innerText = "Step 1: Make the Daisy. Put 4 White Edges around the Yellow Center.";
+    instructionText.innerText = "Step 1: Make the Daisy.";
     instructionText.style.color = "yellow";
     
-    speak("Please create the Daisy manually. Surround the yellow center with four white edge pieces.");
+    // UPDATED SPEECH HERE TOO:
+    speak(
+        "Make a daisy by keeping the yellow block in the center, and 4 white petals on the top, bottom, right, and left of that yellow middle piece.",
+        "Make a Daisy (Yellow Center + 4 White Petals)"
+    );
+
+
 
     // 3. Optional: Show a helper image or video overlay
     // document.getElementById('grid-overlay').style.backgroundImage = "url('assets/daisy-guide.png')";
@@ -339,51 +353,121 @@ function isCenterCorrect(faceColors, expectedColor) {
 
 // --- WHITE CROSS INTEGRATION ---
 
+// --- WHITE CROSS SOLVER (Custom User Explanation) ---
+
 function startWhiteCross() {
-    // 1. Ask the solver for the next move
-    // (Ensure you imported cross-solver.js in HTML!)
+    // 1. Ask the brain for the move
+    // (It uses cross-solver.js logic to find matching or flipping moves)
     let move = getCrossMove(cubeMap);
 
-    // 2. Handle Finish
+    // 2. Victory Check
     if (move === "DONE") {
-        speak("White Cross is complete! Now for the corners.");
-        instructionText.innerText = "Cross Solved! ✅";
-        instructionText.style.color = "#4ade80";
-        scanBtn.innerText = "NEXT: FIRST LAYER";
-        // scanBtn.onclick = startCornersSolver; // Future step
+        speak("Cross completed. Repeat the process for the corners.");
+        instructionText.innerText = "Cross Done! ✅";
+        scanBtn.innerText = "NEXT STEP";
+        // scanBtn.onclick = startCornersSolver; 
         return;
     }
 
-    // 3. Handle "Stuck" pieces (Simple Alert)
+    // 3. Middle Layer Check (Safety)
     if (move.includes("Check")) {
-        speak("I can't find white pieces on top. Check the middle layer.");
-        instructionText.innerText = "⚠️ Piece stuck in middle layer. Eject it manually.";
+        speak("I cannot find a white petal on the top face. Please check the middle layer.");
+        instructionText.innerText = "⚠️ Check Middle Layer";
         return;
     }
 
-    // 4. Handle Normal Moves (U, F2, R2...)
-    let readableMove = move;
-    if (move === "U") readableMove = "Rotate Top Face (Match Colors)";
-    if (move.includes("2")) readableMove = `Turn ${move[0]} Face 180° (Flip Down)`;
+    // 4. CUSTOM EXPLANATION LOGIC
+    // We break your long paragraph into context-aware instructions.
 
-    
-    instructionText.style.fontSize = "24px";
-    // NEW Single Line command
-    speak(
-        `Please ${readableMove}`,  // What the Voice says (Polite)
-        readableMove               // What the Screen shows (Short & Clear)
-    );
+    if (move === "U") {
+        // MATCHING PHASE
+        // User's words: "match the non white stickers... to the centerpiece"
+        speak(
+            "Rotate the top face of the cube. Match the non-white sticker to the centerpiece of the same color.", 
+            "Rotate Top -> Match Center" // Short Text
+        );
+    } 
+    else if (move.includes("2")) {
+        // FLIPPING PHASE (e.g., F2, R2)
+        // User's words: "rotate the face with the matching center two times..."
+        let faceName = getFaceName(move[0]); // Helper to get "Front/Right"
+        
+        speak(
+            `Match found! Now rotate the ${faceName} face two times. This moves the white petal from the top to the bottom.`,
+            `Turn ${faceName} 2x (Flip Down)` // Short Text
+        );
+    }
+    else {
+        // Fallback for weird moves
+        speak("Please perform move " + move, move);
+    }
 
-    // 5. Update Virtual Memory (Crucial!)
-    // We use the same virtual rotation logic as before so user doesn't re-scan.
+    // 5. Update Backend (Keep track of colors)
+    // We still use virtualMove so the app knows where pieces are without scanning
     virtualMove(move, cubeMap);
 
-    // 6. Ready for next click
+    // 6. Loop
     scanBtn.innerText = "I DID IT (Next)";
-    scanBtn.onclick = startWhiteCross; // Loop back
+    scanBtn.onclick = startWhiteCross;
+}
+
+// Helper to convert "F" to "Front" for the text
+function getFaceName(letter) {
+    if (letter === 'F') return "Front";
+    if (letter === 'R') return "Right";
+    if (letter === 'L') return "Left";
+    if (letter === 'B') return "Back";
+    return "Side";
 }
 
 
 
 
 
+// --- FIRST LAYER SOLVER (Natural Language Version) ---
+
+function startCornersSolver() {
+    // 1. Ask the brain for the move (from corners-solver.js)
+    let move = getCornerMove(cubeMap);
+
+    // 2. Victory Check
+    if (move === "DONE") {
+        speak("First layer is complete! Great work.");
+        instructionText.innerText = "Layer 1 Done! ✅";
+        instructionText.style.color = "#4ade80";
+        scanBtn.innerText = "NEXT: 2ND LAYER";
+        // scanBtn.onclick = startSecondLayer; // We will build this next
+        return;
+    }
+
+    // 3. Natural Language Translation
+    if (move === "R U R' U'") {
+        // The "Righty Alg" translated to plain English
+        speak(
+            "We need to twist this corner. Move the Right side UP. Push the Top to the LEFT. Bring the Right side DOWN. Push the Top back to the RIGHT.",
+            "Right UP -> Top LEFT -> Right DOWN -> Top RIGHT" // Short Text
+        );
+        
+        // Update Backend (Must do all 4 moves)
+        virtualMove("R", cubeMap);
+        virtualMove("U", cubeMap);
+        virtualMove("R'", cubeMap);
+        virtualMove("U'", cubeMap);
+    } 
+    else if (move === "U") {
+        speak(
+            "Rotate the top face to find the correct corner piece.",
+            "Rotate Top Face (Search)"
+        );
+        virtualMove("U", cubeMap);
+    }
+    else {
+        // Fallback for safety
+        speak("Please perform " + move, move);
+        virtualMove(move, cubeMap);
+    }
+
+    // 4. Loop
+    scanBtn.innerText = "I DID IT (Next)";
+    scanBtn.onclick = startCornersSolver;
+}
