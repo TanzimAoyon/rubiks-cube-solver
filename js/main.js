@@ -357,60 +357,66 @@ function isCenterCorrect(faceColors, expectedColor) {
 // --- WHITE CROSS SOLVER (Custom User Explanation) ---
 
 function startWhiteCross() {
-    alert("I am alive!");
-    // 1. Ask the brain for the move
-    // (It uses cross-solver.js logic to find matching or flipping moves)
-    let move = getCrossMove(cubeMap);
+    // 1. Sanity Check
+    alert("Step 1: Function Started"); 
 
-    // 2. Victory Check
-    if (move === "DONE") {
-        speak("Cross completed. Repeat the process for the corners.");
-        instructionText.innerText = "Cross Done! ✅";
-        scanBtn.innerText = "NEXT STEP";
-        // scanBtn.onclick = startCornersSolver; 
-        return;
-    }
-
-    // 3. Middle Layer Check (Safety)
-    if (move.includes("Check")) {
-        speak("I cannot find a white petal on the top face. Please check the middle layer.");
-        instructionText.innerText = "⚠️ Check Middle Layer";
-        return;
-    }
-
-    // 4. CUSTOM EXPLANATION LOGIC
-    // We break your long paragraph into context-aware instructions.
-
-    if (move === "U") {
-        // MATCHING PHASE
-        // User's words: "match the non white stickers... to the centerpiece"
-        speak(
-            "Rotate the top face of the cube. Match the non-white sticker to the centerpiece of the same color.", 
-            "Rotate Top -> Match Center" // Short Text
-        );
-    } 
-    else if (move.includes("2")) {
-        // FLIPPING PHASE (e.g., F2, R2)
-        // User's words: "rotate the face with the matching center two times..."
-        let faceName = getFaceName(move[0]); // Helper to get "Front/Right"
+    try {
+        // 2. Check if the Brain function exists
+        if (typeof getCrossMove !== "function") {
+            throw new Error("CRITICAL: getCrossMove is missing! Check index.html");
+        }
         
-        speak(
-            `Match found! Now rotate the ${faceName} face two times. This moves the white petal from the top to the bottom.`,
-            `Turn ${faceName} 2x (Flip Down)` // Short Text
-        );
-    }
-    else {
-        // Fallback for weird moves
-        speak("Please perform move " + move, move);
-    }
+        alert("Step 2: Brain Found. Asking for move...");
 
-    // 5. Update Backend (Keep track of colors)
-    // We still use virtualMove so the app knows where pieces are without scanning
-    virtualMove(move, cubeMap);
+        // 3. Ask the Brain
+        let move = getCrossMove(cubeMap);
+        
+        alert("Step 3: Brain said: " + move);
 
-    // 6. Loop
-    scanBtn.innerText = "I DID IT (Next)";
-    scanBtn.onclick = startWhiteCross;
+        // 4. Handle Victory
+        if (move === "DONE") {
+            speak("Cross completed! Proceeding to corners.");
+            instructionText.innerText = "Cross Done! ✅";
+            scanBtn.innerText = "NEXT: CORNERS";
+            scanBtn.onclick = startCornersSolver; 
+            return;
+        }
+
+        // 5. Handle Middle Layer Check
+        if (move === "Check Middle Layer") {
+             speak("I cannot find a white petal on top. Please check your Daisy.");
+             instructionText.innerText = "⚠️ Check Daisy";
+             return;
+        }
+
+        // 6. Handle Normal Moves
+        if (move === "U") {
+            speak("Rotate the top face. Match the sticker to its center.", "Rotate Top (Match Center)");
+        } 
+        else if (move.includes("2")) {
+            let face = move[0]; 
+            speak(`Match found! Turn the ${face} face two times.`, `Turn ${face} Face 2x`);
+        }
+        else {
+             speak(`Perform move ${move}`, move);
+        }
+
+        // 7. Update Virtual Cube
+        if (typeof virtualMove !== "function") {
+             throw new Error("CRITICAL: virtualMove is missing! Check cube-logic.js");
+        }
+        virtualMove(move, cubeMap);
+
+        // 8. Reset Button
+        scanBtn.innerText = "I DID IT (Next)";
+        scanBtn.onclick = startWhiteCross;
+
+    } catch (error) {
+        // LOUD ERROR POPUP
+        alert("CRASH: " + error.message);
+        instructionText.innerText = "ERROR: " + error.message;
+        instructionText.style.color = "red";
+    }
 }
 
 // Helper to convert "F" to "Front" for the text
