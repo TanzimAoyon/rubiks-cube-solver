@@ -357,6 +357,7 @@ function isCenterCorrect(faceColors, expectedColor) {
 // --- WHITE CROSS SOLVER (Custom User Explanation) ---
 
 function startWhiteCross() {
+    alert("I am alive!");
     // 1. Ask the brain for the move
     // (It uses cross-solver.js logic to find matching or flipping moves)
     let move = getCrossMove(cubeMap);
