@@ -1,16 +1,13 @@
 // js/cross-solver.js
-
-// --- MEMORY VARIABLE (MUST BE OUTSIDE THE FUNCTION) ---
 let lastMove = ""; 
-// -----------------------------------------------------
 
 function getCrossMove(cube) {
-    // 1. Check if Cross is Done
+    // 1. Is the Cross Done? (Check White Face)
     let solvedCount = 0;
     [1, 3, 5, 7].forEach(i => { if (cube.up[i] === 'W') solvedCount++; });
     if (solvedCount === 4) return "DONE";
 
-    // 2. DEFINE POSITIONS (Down Face / Yellow Side)
+    // 2. Define the 4 positions on the Yellow Face (Down)
     const positions = [
         { id: 1, sideFace: 'front', sideIdx: 7, move: 'F2' },
         { id: 5, sideFace: 'right', sideIdx: 7, move: 'R2' },
@@ -18,37 +15,31 @@ function getCrossMove(cube) {
         { id: 3, sideFace: 'left',  sideIdx: 7, move: 'L2' }
     ];
 
-    // 3. PRIORITY 1: Match & Solve
+    // 3. Look for a PERFECT MATCH first
     for (let pos of positions) {
         if (cube.down[pos.id] === 'W') {
             let sideColor = cube[pos.sideFace][pos.sideIdx];
             let centerColor = cube[pos.sideFace][4];
             
             if (sideColor === centerColor) {
-                // --- THE SAFETY CHECK ---
-                if (lastMove === pos.move) {
-                     // If we just said "L2" and it's still there, 
-                     // force a rotation to break the loop!
-                     console.log("Loop detected! Forcing rotation.");
-                     lastMove = "D";
-                     return "D"; 
-                }
-                
-                lastMove = pos.move; // Save memory
-                return pos.move;     // Return "L2"
+                // If we found a match, DO IT.
+                // Reset lastMove so we don't get stuck thinking we are looping
+                lastMove = pos.move; 
+                return pos.move; 
             }
         }
     }
 
-    // 4. PRIORITY 2: Rotate to find match
+    // 4. If no match, do we have ANY white petals?
     let petalFound = false;
     for (let pos of positions) {
         if (cube.down[pos.id] === 'W') petalFound = true;
     }
 
     if (petalFound) {
-        // If we keep rotating, eventually we might loop. 
-        // But usually "D" is safe.
+        // We have a white petal, but it's on the wrong color.
+        // Rotate Top (D) to move it to the next color.
+        // Because of our Fix in cube-logic.js, "D" now follows your hand logic.
         lastMove = "D";
         return "D";
     }
