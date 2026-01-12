@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AR Cube Solver</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body
+    class="bg-gray-900 text-white h-screen flex flex-col items-center overflow-hidden"
+  >
+    <div class="p-4 w-full bg-gray-800 text-center shadow-lg z-10">
+      <h1 class="text-xl font-bold text-yellow-400">Cube Master</h1>
+      <p id="instruction-text" class="text-sm text-gray-300 mt-1">
+        Point camera at the cube.
+      </p>
+    </div>
+
+    <div
+      class="relative w-full max-w-md h-full bg-black flex justify-center items-center"
+    >
+      <video
+        id="video"
+        autoplay
+        playsinline
+        class="absolute w-full h-full object-cover"
+      ></video>
+
+      <div
+        id="grid-overlay"
+        class="absolute w-64 h-64 grid grid-cols-3 grid-rows-3 border-4 border-yellow-500 z-10"
+      >
+        <div class="border border-white/30"></div>
+        <div class="border border-white/30"></div>
+        <div class="border border-white/30"></div>
+        <div class="border border-white/30"></div>
+        <div class="border border-white/30"></div>
+        <div class="border border-white/30"></div>
+        <div class="border border-white/30"></div>
+        <div class="border border-white/30"></div>
+        <div class="border border-white/30"></div>
+      </div>
+
+      <canvas id="canvas" class="hidden"></canvas>
+    </div>
+
+    <div
+      class="absolute bottom-0 w-full p-6 bg-gradient-to-t from-black to-transparent z-20 flex flex-col gap-3"
+    >
+      <button
+        id="scan-btn"
+        class="w-full bg-yellow-500 text-black font-bold py-4 rounded-xl shadow-lg active:scale-95 transition"
+      >
+        SCAN SIDE
+      </button>
+      <button
+        id="next-step-btn"
+        class="hidden w-full bg-blue-600 text-white font-bold py-3 rounded-xl"
+      >
+        NEXT STEP
+      </button>
+    </div>
+
+    <script src="js/main.js"></script>
+  </body>
+</html>

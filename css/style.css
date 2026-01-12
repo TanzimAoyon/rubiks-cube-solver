@@ -1,0 +1,5 @@
+/* Ensure the grid overlay doesn't block clicks if we need them later */
+#grid-overlay {
+    pointer-events: none;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); /* Dim everything outside the grid */
+}
