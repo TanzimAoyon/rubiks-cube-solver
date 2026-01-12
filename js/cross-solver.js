@@ -1,5 +1,5 @@
 // js/cross-solver.js - SMART PRIORITY VERSION
-
+let lastMove = ""; // Remember what we just said
 function getCrossMove(cube) {
     // 1. Check if Cross is Completely Done
     let solvedCount = 0;
@@ -45,6 +45,7 @@ function getCrossMove(cube) {
         // We have white petals, but none line up with their centers yet.
         // So we MUST rotate to find a match.
         // We return "D" (which main.js translates to "Rotate Top")
+        lastMove = "D"
         return "D";
     } else {
         // No white petals on the yellow face?
