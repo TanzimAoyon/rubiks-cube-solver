@@ -78,6 +78,7 @@ function detectColor(r, g, b) {
 
 // --- 3. SCANNING LOGIC ---
 function scanFace() {
+    hasFlippedForCross = false; // <--- RESET THE FLAG HERE
     // 1. Setup Canvas
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -356,24 +357,40 @@ function isCenterCorrect(faceColors, expectedColor) {
 
 // --- WHITE CROSS SOLVER (Custom User Explanation) ---
 
+// Global flag to ensure we only flip the cube once
+let hasFlippedForCross = false; 
+
 function startWhiteCross() {
-    // 1. Sanity Check
-    alert("Step 1: Function Started"); 
-
-    try {
-        // 2. Check if the Brain function exists
-        if (typeof getCrossMove !== "function") {
-            throw new Error("CRITICAL: getCrossMove is missing! Check index.html");
-        }
+    
+    // 1. ONE-TIME ORIENTATION FIX
+    // The scanner saved Yellow as "Down", but for the Cross, we hold Yellow on "Up".
+    // We must swap the data so the logic matches your hands.
+    if (!hasFlippedForCross) {
+        console.log("Flipping cube to Yellow-Top orientation...");
         
-        alert("Step 2: Brain Found. Asking for move...");
+        // Swap Up (White) and Down (Yellow)
+        let tempUp = cubeMap.up;
+        cubeMap.up = cubeMap.down;
+        cubeMap.down = tempUp;
 
-        // 3. Ask the Brain
+        // Also Swap Front and Back (to keep correct logic)
+        let tempFront = cubeMap.front;
+        cubeMap.front = cubeMap.back;
+        cubeMap.back = tempFront;
+
+        // Mark as done so we don't keep flipping forever
+        hasFlippedForCross = true;
+    }
+
+    // 2. NOW Run the Logic
+    try {
+        if (typeof getCrossMove !== "function") {
+            throw new Error("Missing 'getCrossMove' in js/cross-solver.js");
+        }
+
         let move = getCrossMove(cubeMap);
         
-        alert("Step 3: Brain said: " + move);
-
-        // 4. Handle Victory
+        // 3. Victory Check
         if (move === "DONE") {
             speak("Cross completed! Proceeding to corners.");
             instructionText.innerText = "Cross Done! ✅";
@@ -382,14 +399,14 @@ function startWhiteCross() {
             return;
         }
 
-        // 5. Handle Middle Layer Check
+        // 4. Handle "Check Layer"
         if (move === "Check Middle Layer") {
              speak("I cannot find a white petal on top. Please check your Daisy.");
              instructionText.innerText = "⚠️ Check Daisy";
              return;
         }
 
-        // 6. Handle Normal Moves
+        // 5. Speak the Move
         if (move === "U") {
             speak("Rotate the top face. Match the sticker to its center.", "Rotate Top (Match Center)");
         } 
@@ -401,19 +418,18 @@ function startWhiteCross() {
              speak(`Perform move ${move}`, move);
         }
 
-        // 7. Update Virtual Cube
+        // 6. Update Memory
         if (typeof virtualMove !== "function") {
-             throw new Error("CRITICAL: virtualMove is missing! Check cube-logic.js");
+             throw new Error("Missing 'virtualMove'");
         }
         virtualMove(move, cubeMap);
 
-        // 8. Reset Button
+        // 7. Loop
         scanBtn.innerText = "I DID IT (Next)";
         scanBtn.onclick = startWhiteCross;
 
     } catch (error) {
-        // LOUD ERROR POPUP
-        alert("CRASH: " + error.message);
+        console.error(error);
         instructionText.innerText = "ERROR: " + error.message;
         instructionText.style.color = "red";
     }
