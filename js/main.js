@@ -373,24 +373,7 @@ function isCenterCorrect(faceColors, expectedColor) {
     return false;
 }
 
-// Check 2: Is the whole cube solved?
-function isCubeSolved(cube) {
-    // Check every face in our map
-    for (let side in cube) {
-        let face = cube[side];
-        if (face.length === 0) return false; // Not scanned yet
-        
-        // Get the center color of this face
-        let center = face[4];
-        
-        // Check if all 9 stickers match the center
-        // If even ONE sticker is different, the cube is not solved.
-        for (let sticker of face) {
-            if (sticker !== center) return false;
-        }
-    }
-    return true; // If we survived the loop, it's solved!
-}
+
 
 
 
