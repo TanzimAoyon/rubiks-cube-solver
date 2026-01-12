@@ -1,85 +1,54 @@
-// js/cross-solver.js - UPSIDE DOWN MODE
+// js/cross-solver.js - SMART PRIORITY VERSION
 
-// 1. Helper: Find White Petals on the DOWN face (Physically your Top)
-function findWhitePetal(cube) {
-    // Indices 1, 3, 5, 7 on the Down face
-    const edges = [1, 3, 5, 7];
-    for (let i of edges) {
-        if (cube.down[i] === 'W') return i;
-    }
-    return null; 
-}
-
-// 2. Helper: Get the Side Sticker of a DOWN-Edge
-function getSideStickerColor(downIndex, cube) {
-    // If we are looking at the Down face (Yellow), the attached side stickers
-    // are on the BOTTOM row (Index 7) of the side faces.
-    
-    // Map Down-Index -> [Face Name, Face Index]
-    // Down[1] (Front-side) touches Front[7]
-    // Down[3] (Right-side) touches Right[7] ... Wait, mapping depends on orientation.
-    // Let's use standard unfolding:
-    // Down[7] connects to Back[7] ? No.
-    // Let's rely on standard layout:
-    // Down 1 (Top of Down Face) -> Front [7]
-    // Down 5 (Right of Down Face) -> Right [7]
-    // Down 7 (Bottom of Down Face) -> Back [7]
-    // Down 3 (Left of Down Face) -> Left [7]
-
-    const map = {
-        1: ['front', 7],
-        5: ['right', 7],
-        7: ['back', 7],
-        3: ['left', 7]
-    };
-
-    if (!map[downIndex]) return { color: '?', face: 'front' };
-
-    const [sideName, sideIndex] = map[downIndex];
-    return { 
-        color: cube[sideName][sideIndex], 
-        face: sideName 
-    };
-}
-
-// 3. MAIN LOGIC
 function getCrossMove(cube) {
-    // A. Check if Cross is Done (All 4 UP edges are White)
-    // Because we are upside down, the "Target" is the White Face (UP).
+    // 1. Check if Cross is Completely Done
     let solvedCount = 0;
+    // Check Down indices 1,3,5,7 (which are UP in our inverted logic)
     [1, 3, 5, 7].forEach(i => { if (cube.up[i] === 'W') solvedCount++; });
-    
     if (solvedCount === 4) return "DONE";
 
-    // B. Find a White Petal on the "Working Layer" (DOWN/Yellow)
-    const petalIndex = findWhitePetal(cube);
+    // 2. DEFINE THE 4 POSITIONS
+    // We are holding Yellow Up, so we check the 'down' face of the virtual cube.
+    // Map: DownIndex -> [SideFace, SideIndex]
+    const positions = [
+        { id: 1, sideFace: 'front', sideIdx: 7, move: 'F2' },
+        { id: 5, sideFace: 'right', sideIdx: 7, move: 'R2' },
+        { id: 7, sideFace: 'back',  sideIdx: 7, move: 'B2' },
+        { id: 3, sideFace: 'left',  sideIdx: 7, move: 'L2' }
+    ];
+
+    // 3. PRIORITY 1: Look for a PERFECT MATCH
+    // (White is on Top, and the Side Sticker matches the Center)
     
-    // C. If no petal found on the yellow face...
-    if (petalIndex === null) {
-        return "Check Middle Layer"; 
+    for (let pos of positions) {
+        // Is there a white petal here?
+        if (cube.down[pos.id] === 'W') {
+            // Check the side sticker color
+            let sideColor = cube[pos.sideFace][pos.sideIdx];
+            let centerColor = cube[pos.sideFace][4]; // Center is always index 4
+            
+            // If it matches, DO IT NOW!
+            if (sideColor === centerColor) {
+                return pos.move; // e.g., "F2"
+            }
+        }
     }
 
-    // D. MATCH PHASE
-    const stickerObj = getSideStickerColor(petalIndex, cube);
-    const sideColor = stickerObj.color; 
-    const currentFace = stickerObj.face; 
-
-    // Get the Center color of that face (Index 4 is always center)
-    const currentFaceCenter = cube[currentFace][4]; 
-
-    // IF MISMATCH: Return "D" (which we will translate to "Rotate Top")
-    // We use D because for the computer, Yellow is Down.
-    if (sideColor !== currentFaceCenter) {
-        return "D"; 
+    // 4. PRIORITY 2: If no matches, is there ANY white petal at all?
+    let petalFound = false;
+    for (let pos of positions) {
+        if (cube.down[pos.id] === 'W') petalFound = true;
     }
 
-    // E. FLIP PHASE: They match!
-    // Since we are upside down, turning a side 180 (F2) brings the piece 
-    // from Down (Yellow) to Up (White).
-    if (currentFace === 'front') return "F2";
-    if (currentFace === 'right') return "R2";
-    if (currentFace === 'back') return "B2";
-    if (currentFace === 'left') return "L2";
-
-    return "D"; // Fallback
+    // 5. DECISION
+    if (petalFound) {
+        // We have white petals, but none line up with their centers yet.
+        // So we MUST rotate to find a match.
+        // We return "D" (which main.js translates to "Rotate Top")
+        return "D";
+    } else {
+        // No white petals on the yellow face?
+        // They must be stuck in the middle layer.
+        return "Check Middle Layer";
+    }
 }
