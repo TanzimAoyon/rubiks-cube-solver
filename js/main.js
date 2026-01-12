@@ -228,18 +228,19 @@ function speak(audioMsg, visualMsg) {
 // --- INIT ---
 startCamera();
 // --- EVENT LISTENERS ---
-scanBtn.addEventListener('click', () => {
-    // 1. TRICK: "Unlock" the voice engine immediately on click
-    // This fires BEFORE the heavy camera math runs
+// INITIAL BUTTON SETUP
+// We use .onclick instead of addEventListener so we can overwrite it later
+scanBtn.onclick = () => {
+    // 1. Voice Unlock (Keep this, it's good for mobile!)
     if ('speechSynthesis' in window) {
         const unlock = new SpeechSynthesisUtterance(''); 
-        unlock.volume = 0; // Silent but activates the audio engine
+        unlock.volume = 0; 
         window.speechSynthesis.speak(unlock);
     }
 
-    // 2. Now run the actual scanning logic
+    // 2. Run the scan
     scanFace();
-});
+};
 instructionText.innerText = "Show Green center, then Scan.";
 
 // --- INSTAGRAM/FACEBOOK DETECTOR ---
@@ -471,3 +472,4 @@ function startCornersSolver() {
     scanBtn.innerText = "I DID IT (Next)";
     scanBtn.onclick = startCornersSolver;
 }
+
