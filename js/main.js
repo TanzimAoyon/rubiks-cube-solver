@@ -358,6 +358,7 @@ function isCenterCorrect(faceColors, expectedColor) {
 // --- WHITE CROSS SOLVER (Custom User Explanation) ---
 
 // Global flag to ensure we only flip the cube once
+// Global flag to ensure we only flip the cube once
 let hasFlippedForCross = false; 
 
 function startWhiteCross() {
