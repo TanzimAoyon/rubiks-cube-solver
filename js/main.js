@@ -442,3 +442,8 @@ function startWhiteCross() {
     scanBtn.innerText = "I DID IT (Next)";
     scanBtn.onclick = startWhiteCross; // Loop back
 }
+
+
+
+
+
