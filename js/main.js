@@ -140,5 +140,17 @@ function speak(text) {
 
 // --- INIT ---
 startCamera();
-scanBtn.addEventListener('click', scanFace);
+// --- EVENT LISTENERS ---
+scanBtn.addEventListener('click', () => {
+    // 1. TRICK: "Unlock" the voice engine immediately on click
+    // This fires BEFORE the heavy camera math runs
+    if ('speechSynthesis' in window) {
+        const unlock = new SpeechSynthesisUtterance(''); 
+        unlock.volume = 0; // Silent but activates the audio engine
+        window.speechSynthesis.speak(unlock);
+    }
+
+    // 2. Now run the actual scanning logic
+    scanFace();
+});
 instructionText.innerText = "Show Green center, then Scan.";
