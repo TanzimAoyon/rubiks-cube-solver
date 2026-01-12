@@ -78,12 +78,11 @@ function detectColor(r, g, b) {
 
 // --- 3. SCANNING LOGIC ---
 function scanFace() {
-    // 1. Setup Canvas & Context
+    // 1. Setup Canvas
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0);
 
-    // 2. Define Grid Points (Same math as before)
     const width = canvas.width;
     const height = canvas.height;
     const stepX = width / 10; 
@@ -91,132 +90,90 @@ function scanFace() {
     const startX = (width / 2) - stepX; 
     const startY = (height / 2) - stepY;
 
-    // 3. Temporary Array to hold this scan
     let currentScan = [];
     
+    // 2. Scan Pixels
     for (let row = 0; row < 3; row++) {
         for (let col = 0; col < 3; col++) {
             let x = startX + (col * stepX);
             let y = startY + (row * stepY);
             const pixel = ctx.getImageData(x, y, 1, 1).data;
-            // Use your detectColor function here
             const colorCode = detectColor(pixel[0], pixel[1], pixel[2]);
             currentScan.push(colorCode);
         }
     }
 
-    // --- NEW GUARD 1: Check Center Color ---
+    // 3. Validation Guard
     const expectedSideName = scanOrder[currentSideIndex];
-    const expectedColor = sideColors[expectedSideName]; // e.g., 'Green', 'Red'
-    
-    // Convert full name 'Green' to code 'G' for comparison if your detectColor returns single letters
-    // NOTE: Ensure detectColor returns full names ('Green') or map them!
-    // Let's assume detectColor returns 'G', 'R', etc.
+    const expectedColor = sideColors[expectedSideName];
     const colorMap = {'Green':'G', 'Red':'R', 'Blue':'B', 'Orange':'O', 'White':'W', 'Yellow':'Y'};
-    const expectedCode = colorMap[expectedColor];
-
-    if (!isCenterCorrect(currentScan, expectedCode)) {
-        // ERROR: Wrong side detected!
-        // Identify what color they actually showed
-        const actualCode = currentScan[4]; // The center sticker they showed
-        const codeToName = {'G':'Green', 'R':'Red', 'B':'Blue', 'O':'Orange', 'W':'White', 'Y':'Yellow'};
-        const actualName = codeToName[actualCode] || "Unknown";
-
-        speak(`That looks like the ${actualName} side. I need the ${expectedColor} side.`);
-        instructionText.innerText = `❌ Wrong Side! Found ${actualName}. Show ${expectedColor}.`;
-        instructionText.style.color = "red";
-        
-        // STOP HERE. Do not save. Do not advance index.
-        return; 
+    
+    // Helper check (Safe mode)
+    if (typeof isCenterCorrect === "function") {
+         if (!isCenterCorrect(currentScan, colorMap[expectedColor])) {
+            speak(`Wrong side. Show ${expectedColor}.`, `❌ Found Wrong Side. Show ${expectedColor}.`);
+            instructionText.style.color = "red";
+            return; 
+        }
     }
 
-    // 4. Success! Save the data.
-    instructionText.style.color = "white"; // Reset text color
+    // 4. Save Data
+    instructionText.style.color = "white";
     cubeMap[expectedSideName] = currentScan;
     speak(`Saved ${expectedColor} side.`);
-    console.log(`Saved ${expectedSideName}:`, currentScan);
-
-    // 5. Advance to Next Step
-    currentSideIndex++;
     
+    // 5. Advance Index
+    currentSideIndex++;
+
+    // 6. DEBUGGING BLOCK STARTS HERE
     if (currentSideIndex < scanOrder.length) {
         let nextSide = scanOrder[currentSideIndex];
         let nextColor = sideColors[nextSide];
-        instructionText.innerText = `Show ${nextColor} center, then Scan.`;
-        speak(`Show the ${nextColor} center.`);
-    
-    
-    
-    
-
-    
-    
+        speak(`Show the ${nextColor} center.`, `Show ${nextColor} center, then Scan.`);
     } else {
-        // --- SCANNING FINISHED (All 6 sides done) ---
+        // THIS IS WHERE IT WAS CRASHING
+        try {
+            // Check if external functions exist
+            if (typeof isCubeSolved !== "function") {
+                throw new Error("Missing 'isCubeSolved'. Check solver.js!");
+            }
+            if (typeof isDaisySolved !== "function") {
+                throw new Error("Missing 'isDaisySolved'. Check solver.js!");
+            }
 
-        // 1. Guard: Is the cube already fully solved?
-        if (isCubeSolved(cubeMap)) {
-            instructionText.innerText = "Cube is already solved! 🎉";
-            instructionText.style.color = "#4ade80"; 
-            scanBtn.innerText = "RESET";
-            scanBtn.onclick = () => location.reload();
-            speak("This cube is already solved. You are done.");
-            return;
-        }
+            // Run the Logic
+            if (isCubeSolved(cubeMap)) {
+                instructionText.innerText = "Cube is already solved! 🎉";
+                instructionText.style.color = "#4ade80"; 
+                scanBtn.innerText = "RESET";
+                scanBtn.onclick = () => location.reload();
+                speak("Solved. You are done.");
+                return;
+            }
 
-        // 2. THE TRAFFIC COP: Decide Next Step
-        // We check if the Daisy exists. 
-        // If YES, it means the user just finished the Manual Step & Re-Scan.
-        
-        if (isDaisySolved(cubeMap)) {
-            // --- PATH A: DAISY IS DONE -> GO TO CROSS ---
-            instructionText.innerText = "Re-Scan Complete! Daisy found. Let's solve the Cross.";
-            instructionText.style.color = "white";
-            scanBtn.innerText = "SOLVE CROSS";
-            scanBtn.className = "w-full bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg";
-            
-            // This is the line you asked about:
-            scanBtn.onclick = startWhiteCross; 
-            
-            speak("Great. I see the Daisy. Let's solve the white cross.");
+            if (isDaisySolved(cubeMap)) {
+                instructionText.innerText = "Re-Scan Complete! Let's solve the Cross.";
+                scanBtn.innerText = "SOLVE CROSS";
+                scanBtn.className = "w-full bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg";
+                scanBtn.onclick = startWhiteCross; 
+                speak("Daisy found. Let's solve the cross.");
+            } else {
+                instructionText.innerText = "Scanning Complete! Let's make the Daisy.";
+                scanBtn.innerText = "START DAISY";
+                scanBtn.className = "w-full bg-yellow-500 text-black font-bold py-4 rounded-xl shadow-lg";
+                scanBtn.onclick = startDaisySolver;
+                speak("Scanning complete. Let's make the Daisy.");
+            }
 
-        } else {
-            // --- PATH B: NO DAISY -> START DAISY INSTRUCTIONS ---
-            instructionText.innerText = "Scanning Complete! Let's make the Daisy.";
-            scanBtn.innerText = "START DAISY";
-            scanBtn.className = "w-full bg-yellow-500 text-black font-bold py-4 rounded-xl shadow-lg";
-            
-            scanBtn.onclick = startDaisySolver;
-            
-            speak("Scanning complete. Let's start by making the Daisy.");
+        } catch (error) {
+            // PRINT ERROR TO SCREEN
+            console.error(error);
+            instructionText.innerText = "CRITICAL ERROR: " + error.message;
+            instructionText.style.color = "red";
+            instructionText.style.fontSize = "16px";
+            speak("System Error. Please check the screen.");
         }
     }
-
-
-
-
-
-
-
-
-    // } else {
-    //     // --- NEW GUARD 2: Check if Solved ---
-    //     if (isCubeSolved(cubeMap)) {
-    //         instructionText.innerText = "Cube is already solved! 🎉";
-    //         instructionText.style.color = "#4ade80"; // Bright Green
-    //         scanBtn.innerText = "RESET";
-    //         scanBtn.className = "w-full bg-blue-600 text-white font-bold py-4 rounded-xl";
-    //         speak("Wait a second. This cube is already solved! You don't need my help.");
-            
-    //         scanBtn.onclick = () => location.reload(); // Reload app to start over
-    //     } else {
-    //         // Normal behavior: Start the Daisy Logic
-    //         instructionText.innerText = "Scanning Complete! Calculating Daisy...";
-    //         scanBtn.innerText = "START DAISY";
-    //         scanBtn.onclick = startDaisySolver;
-    //         speak("Scanning complete. Let's make the Daisy.");
-    //     }
-    // }
 }
 
 // // --- VOICE ---
