@@ -1,71 +1,85 @@
-// js/cross-solver.js - IMPROVED VERSION
+// js/cross-solver.js - UPSIDE DOWN MODE
 
-// 1. Helper: Find where the White Petals are on the UP face
+// 1. Helper: Find White Petals on the DOWN face (Physically your Top)
 function findWhitePetal(cube) {
-    // We only care about the 4 edges on the UP face: indices 1, 3, 5, 7
+    // Indices 1, 3, 5, 7 on the Down face
     const edges = [1, 3, 5, 7];
     for (let i of edges) {
-        if (cube.up[i] === 'W') return i;
+        if (cube.down[i] === 'W') return i;
     }
-    return null; // No white petals found on top
+    return null; 
 }
 
-// 2. Helper: Get the color of the "Side Sticker" of a specific Up-Edge
-function getSideStickerColor(upIndex, cube) {
-    // Mapping Up-Edge Index -> [Face Name, Face Index]
-    const map = {
-        7: ['front', 1],
-        5: ['right', 1],
-        1: ['back', 1],
-        3: ['left', 1]
-    };
+// 2. Helper: Get the Side Sticker of a DOWN-Edge
+function getSideStickerColor(downIndex, cube) {
+    // If we are looking at the Down face (Yellow), the attached side stickers
+    // are on the BOTTOM row (Index 7) of the side faces.
     
-    // Safety check in case map is undefined
-    if (!map[upIndex]) return { color: '?', face: 'front' };
+    // Map Down-Index -> [Face Name, Face Index]
+    // Down[1] (Front-side) touches Front[7]
+    // Down[3] (Right-side) touches Right[7] ... Wait, mapping depends on orientation.
+    // Let's use standard unfolding:
+    // Down[7] connects to Back[7] ? No.
+    // Let's rely on standard layout:
+    // Down 1 (Top of Down Face) -> Front [7]
+    // Down 5 (Right of Down Face) -> Right [7]
+    // Down 7 (Bottom of Down Face) -> Back [7]
+    // Down 3 (Left of Down Face) -> Left [7]
 
-    const [sideName, sideIndex] = map[upIndex];
+    const map = {
+        1: ['front', 7],
+        5: ['right', 7],
+        7: ['back', 7],
+        3: ['left', 7]
+    };
+
+    if (!map[downIndex]) return { color: '?', face: 'front' };
+
+    const [sideName, sideIndex] = map[downIndex];
     return { 
         color: cube[sideName][sideIndex], 
         face: sideName 
     };
 }
 
-// 3. THE MAIN LOGIC
+// 3. MAIN LOGIC
 function getCrossMove(cube) {
-    // A. Check if Cross is done (All 4 bottom edges are White)
-    const downEdges = [1, 3, 5, 7];
+    // A. Check if Cross is Done (All 4 UP edges are White)
+    // Because we are upside down, the "Target" is the White Face (UP).
     let solvedCount = 0;
-    downEdges.forEach(i => { if (cube.down[i] === 'W') solvedCount++; });
+    [1, 3, 5, 7].forEach(i => { if (cube.up[i] === 'W') solvedCount++; });
     
     if (solvedCount === 4) return "DONE";
 
-    // B. Find a White Petal on Top
+    // B. Find a White Petal on the "Working Layer" (DOWN/Yellow)
     const petalIndex = findWhitePetal(cube);
     
-    // C. If no petal on top, but cross isn't done...
+    // C. If no petal found on the yellow face...
     if (petalIndex === null) {
-        // Return a specific string that main.js now knows how to handle
-        return "Check Middle Layer";
+        return "Check Middle Layer"; 
     }
 
-    // D. "Match" Phase: Check if aligned with center
+    // D. MATCH PHASE
     const stickerObj = getSideStickerColor(petalIndex, cube);
-    const sideColor = stickerObj.color; // e.g., 'R' (Red)
-    const currentFace = stickerObj.face; // e.g., 'right'
-    
-    // Get the center color of the face it is currently sitting on (Index 4)
+    const sideColor = stickerObj.color; 
+    const currentFace = stickerObj.face; 
+
+    // Get the Center color of that face (Index 4 is always center)
     const currentFaceCenter = cube[currentFace][4]; 
 
-    // IF they don't match -> Rotate Top (U) to find the home
+    // IF MISMATCH: Return "D" (which we will translate to "Rotate Top")
+    // We use D because for the computer, Yellow is Down.
     if (sideColor !== currentFaceCenter) {
-        return "U"; 
+        return "D"; 
     }
 
-    // E. "Flip" Phase: They match! Flip it down.
-    if (currentFace === 'front') return "F2"; // Turn Front 180
-    if (currentFace === 'right') return "R2"; // Turn Right 180
-    if (currentFace === 'back') return "B2";  // Turn Back 180
-    if (currentFace === 'left') return "L2";  // Turn Left 180
+    // E. FLIP PHASE: They match!
+    // Since we are upside down, turning a side 180 (F2) brings the piece 
+    // from Down (Yellow) to Up (White).
+    if (currentFace === 'front') return "F2";
+    if (currentFace === 'right') return "R2";
+    if (currentFace === 'back') return "B2";
+    if (currentFace === 'left') return "L2";
 
-    return "U"; // Fallback: just turn top if confused
+    return "D"; // Fallback
 }

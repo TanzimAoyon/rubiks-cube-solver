@@ -362,25 +362,14 @@ function isCenterCorrect(faceColors, expectedColor) {
 let hasFlippedForCross = false; 
 
 function startWhiteCross() {
-    
-    // 1. ONE-TIME ORIENTATION FIX (Yellow needs to be UP for this math)
-    if (!hasFlippedForCross) {
-        let tempUp = cubeMap.up;
-        cubeMap.up = cubeMap.down;
-        cubeMap.down = tempUp;
-
-        let tempFront = cubeMap.front;
-        cubeMap.front = cubeMap.back;
-        cubeMap.back = tempFront;
-
-        hasFlippedForCross = true;
-    }
+    // 1. NO FLIPPING CODE. We use the raw data now.
 
     try {
         // 2. Ask the Brain
+        if (typeof getCrossMove !== "function") throw new Error("Missing getCrossMove");
         let move = getCrossMove(cubeMap);
         
-        // 3. Victory Check
+        // 3. Victory
         if (move === "DONE") {
             speak("Cross completed! Proceeding to corners.");
             instructionText.innerText = "Cross Done! ✅";
@@ -395,18 +384,21 @@ function startWhiteCross() {
              return;
         }
 
-        // 4. UPDATED INSTRUCTIONS HERE
-        if (move === "U") {
-            // Your custom sentence:
+        // 4. TRANSLATE & SPEAK
+        // CRITICAL: The brain says "D" (Down), but you are holding Yellow on Top.
+        // So we tell you "Rotate Top".
+        
+        if (move === "D") {
             speak(
-                "Rotate the top face until the side color of the white petal matches its center piece of the same color.", 
-                "Rotate Top -> Match Side Color"
+                "Rotate the top face until the side sticker matches its center.", 
+                "Rotate Top (Match Center)"
             );
         } 
         else if (move.includes("2")) {
+            // F2, R2, etc.
             let face = move[0]; 
             speak(
-                `Match found! Now rotate the ${face} face two times to move the white petal to the bottom.`, 
+                `Match found! Turn the ${face} face two times to bring the white piece to the bottom.`, 
                 `Turn ${face} Face 2x`
             );
         }
@@ -415,11 +407,7 @@ function startWhiteCross() {
         }
 
         // 5. Update Memory
-        if (typeof virtualMove !== "function") {
-             // This is the error you were seeing. 
-             // If this triggers, cube-logic.js is still not loaded correctly!
-             throw new Error("Missing 'virtualMove'. Check cube-logic.js!");
-        }
+        if (typeof virtualMove !== "function") throw new Error("Missing virtualMove");
         virtualMove(move, cubeMap);
 
         // 6. Loop
