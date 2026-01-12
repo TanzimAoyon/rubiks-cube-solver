@@ -131,12 +131,46 @@ function scanFace() {
     }
 }
 
-// --- VOICE ---
+// // --- VOICE ---
+// function speak(text) {
+//     window.speechSynthesis.cancel();
+//     const utterance = new SpeechSynthesisUtterance(text);
+//     window.speechSynthesis.speak(utterance);
+// }
+
+
+
+
+// --- VOICE (Fail-Safe Version) ---
 function speak(text) {
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    window.speechSynthesis.speak(utterance);
+    // 1. Always update the text on screen first (Visual fallback)
+    instructionText.innerText = text;
+
+    // 2. Check if the browser actually supports speech
+    if ('speechSynthesis' in window) {
+        // Cancel any current speech to prevent overlapping
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        
+        // Mobile browsers sometimes need a volume push
+        utterance.volume = 1; 
+        utterance.rate = 1;
+
+        // Wrap in a try-catch block so it doesn't crash the app if it fails
+        try {
+            window.speechSynthesis.speak(utterance);
+        } catch (e) {
+            console.warn("Voice failed (likely Instagram browser):", e);
+            // App continues running silently
+        }
+    }
 }
+
+
+
+
+
 
 // --- INIT ---
 startCamera();
@@ -154,3 +188,31 @@ scanBtn.addEventListener('click', () => {
     scanFace();
 });
 instructionText.innerText = "Show Green center, then Scan.";
+
+// --- INSTAGRAM/FACEBOOK DETECTOR ---
+function checkBrowser() {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+    
+    // Detect Instagram or Facebook in-app browsers
+    if (userAgent.indexOf("Instagram") > -1 || userAgent.indexOf("FBAN") > -1 || userAgent.indexOf("FBAV") > -1) {
+        
+        // Show a warning banner
+        const warningDiv = document.createElement("div");
+        warningDiv.style.position = "fixed";
+        warningDiv.style.top = "0";
+        warningDiv.style.left = "0";
+        warningDiv.style.width = "100%";
+        warningDiv.style.backgroundColor = "#ffcc00"; // Yellow warning
+        warningDiv.style.color = "black";
+        warningDiv.style.padding = "15px";
+        warningDiv.style.zIndex = "9999";
+        warningDiv.style.textAlign = "center";
+        warningDiv.style.fontWeight = "bold";
+        warningDiv.innerHTML = "⚠️ For Camera & Voice to work, please click the 3 dots (top right) and choose 'Open in Chrome/Safari'.";
+        
+        document.body.appendChild(warningDiv);
+    }
+}
+
+// Run this check when the page loads
+checkBrowser();
