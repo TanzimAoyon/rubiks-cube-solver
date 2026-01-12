@@ -114,7 +114,7 @@ function scanFace() {
     cubeMap[sideName] = faceColors;
     
     console.log(`Scanned ${sideName}:`, faceColors);
-    speak(`Saved ${sideName} side.`);
+    speak(`Saved, keep the yellow face ${sideName} side.`);
 
     // 5. Move to Next Step
     currentSideIndex++;
