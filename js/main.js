@@ -13,14 +13,28 @@ let cubeState = {
 // --- 1. CAMERA SETUP ---
 async function startCamera() {
     try {
-        // Request back camera on mobile
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: "environment" } 
-        });
+        // Explicitly asking for the rear camera with fallback
+        const constraints = { 
+            video: { 
+                facingMode: "environment",
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            } 
+        };
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = stream;
+        
+        // Force play (sometimes needed for mobile)
+        video.onloadedmetadata = () => {
+            video.play();
+        };
+
     } catch (err) {
-        alert("Camera Error: " + err);
-        instructionText.innerText = "Please allow camera access.";
+        console.error("Camera Error:", err);
+        // This will print the exact error on your phone screen
+        instructionText.innerText = "Error: " + err.name + " - " + err.message;
+        instructionText.style.color = "red";
     }
 }
 
