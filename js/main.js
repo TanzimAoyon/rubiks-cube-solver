@@ -363,32 +363,21 @@ let hasFlippedForCross = false;
 
 function startWhiteCross() {
     
-    // 1. ONE-TIME ORIENTATION FIX
-    // The scanner saved Yellow as "Down", but for the Cross, we hold Yellow on "Up".
-    // We must swap the data so the logic matches your hands.
+    // 1. ONE-TIME ORIENTATION FIX (Yellow needs to be UP for this math)
     if (!hasFlippedForCross) {
-        console.log("Flipping cube to Yellow-Top orientation...");
-        
-        // Swap Up (White) and Down (Yellow)
         let tempUp = cubeMap.up;
         cubeMap.up = cubeMap.down;
         cubeMap.down = tempUp;
 
-        // Also Swap Front and Back (to keep correct logic)
         let tempFront = cubeMap.front;
         cubeMap.front = cubeMap.back;
         cubeMap.back = tempFront;
 
-        // Mark as done so we don't keep flipping forever
         hasFlippedForCross = true;
     }
 
-    // 2. NOW Run the Logic
     try {
-        if (typeof getCrossMove !== "function") {
-            throw new Error("Missing 'getCrossMove' in js/cross-solver.js");
-        }
-
+        // 2. Ask the Brain
         let move = getCrossMove(cubeMap);
         
         // 3. Victory Check
@@ -400,32 +389,40 @@ function startWhiteCross() {
             return;
         }
 
-        // 4. Handle "Check Layer"
         if (move === "Check Middle Layer") {
              speak("I cannot find a white petal on top. Please check your Daisy.");
              instructionText.innerText = "⚠️ Check Daisy";
              return;
         }
 
-        // 5. Speak the Move
+        // 4. UPDATED INSTRUCTIONS HERE
         if (move === "U") {
-            speak("Rotate the top face. Match the sticker to its center.", "Rotate Top (Match Center)");
+            // Your custom sentence:
+            speak(
+                "Rotate the top face until the side color of the white petal matches its center piece of the same color.", 
+                "Rotate Top -> Match Side Color"
+            );
         } 
         else if (move.includes("2")) {
             let face = move[0]; 
-            speak(`Match found! Turn the ${face} face two times.`, `Turn ${face} Face 2x`);
+            speak(
+                `Match found! Now rotate the ${face} face two times to move the white petal to the bottom.`, 
+                `Turn ${face} Face 2x`
+            );
         }
         else {
              speak(`Perform move ${move}`, move);
         }
 
-        // 6. Update Memory
+        // 5. Update Memory
         if (typeof virtualMove !== "function") {
-             throw new Error("Missing 'virtualMove'");
+             // This is the error you were seeing. 
+             // If this triggers, cube-logic.js is still not loaded correctly!
+             throw new Error("Missing 'virtualMove'. Check cube-logic.js!");
         }
         virtualMove(move, cubeMap);
 
-        // 7. Loop
+        // 6. Loop
         scanBtn.innerText = "I DID IT (Next)";
         scanBtn.onclick = startWhiteCross;
 
