@@ -447,33 +447,74 @@ let cornersIntroPlayed = false;
 
 // --- CORNERS TUTORIAL MODE (No Math) ---
 
+// --- CORNERS TUTORIAL MODE (Strict Flow) ---
+
 function startCornersSolver() {
-    // 1. Clear previous UI
-    if (scanBtn) scanBtn.style.display = "none";
-    removeControls(); // Clear old buttons if any
-
-    // 2. The Instruction Text
-    let introText = "Time to solve the corners! Watch the video to learn how to match the white stickers diagonally and use the Trigger moves. Solve all 4 corners, then click Next.";
+    // 1. STEP 1: THE INTRO "CHAPTER BREAK"
     
-    // 3. Speak & Show
+    // Cleanup UI
+    if (scanBtn) scanBtn.style.display = "none";
+    removeControls(); 
+
+    // Speak & Show "Time to solve corners"
+    instructionText.innerText = "Phase 2: Corners";
+    speak("Time to solve corners.");
+
+    // Show "PROCEED" Button
+    // We use a temporary simple button just for this step
+    let controlsDiv = document.createElement("div");
+    controlsDiv.id = "solver-controls"; // Re-use ID so removeControls() works later
+    controlsDiv.style.position = "fixed"; 
+    controlsDiv.style.bottom = "20px";
+    controlsDiv.style.width = "100%";
+    controlsDiv.style.display = "flex";
+    controlsDiv.style.justifyContent = "center";
+    controlsDiv.style.zIndex = "9999"; 
+
+    let btnProceed = document.createElement("button");
+    btnProceed.innerText = "PROCEED ➡️";
+    btnProceed.style.padding = "15px 40px";
+    btnProceed.style.fontSize = "18px";
+    btnProceed.style.fontWeight = "bold";
+    btnProceed.style.backgroundColor = "#2563eb"; // Blue
+    btnProceed.style.color = "white";
+    btnProceed.style.borderRadius = "50px";
+    btnProceed.style.border = "none";
+    btnProceed.style.boxShadow = "0 4px 10px rgba(0,0,0,0.3)";
+    
+    // CLICK PROCEED -> GO TO STEP 2
+    btnProceed.onclick = startCornersInstruction;
+
+    controlsDiv.appendChild(btnProceed);
+    document.body.appendChild(controlsDiv);
+}
+
+// 2. STEP 2: THE INSTRUCTIONS & CONTROLS
+function startCornersInstruction() {
+    // Remove the "Proceed" button
+    removeControls();
+
+    // The FULL Instruction Text
+    let fullInstruction = "If needed, please watch the video for help. Here is the strategy: Look for white stickers on the Top Layer that are facing outward. Match the color beside the white sticker diagonally to its matching center. Then, perform a Left or Right Trigger move to solve it.";
+
+    // Speak immediately
     instructionText.innerText = "Tutorial: Solve 4 Corners";
-    speak(introText);
+    speak(fullInstruction);
 
-    // 4. Show the 3 Buttons (Left: Help, Middle: Repeat, Right: Next)
+    // Show the 3 Buttons
     createManualControls(
-        // LEFT BUTTON: HELP (Video)
+        // LEFT: HELP (Video)
         () => {
-            // REPLACE 'YOUR_VIDEO_ID' with your actual YouTube Video ID
-            // Example: if link is https://youtu.be/dQw4w9WgXcQ, ID is dQw4w9WgXcQ
-            openVideo("dQw4w9WgXcQ"); 
+            // Replace with your unlisted YouTube ID
+            openVideo("YOUR_VIDEO_ID_HERE"); 
         },
 
-        // MIDDLE BUTTON: REPEAT
+        // MIDDLE: REPEAT (The exact same instruction)
         () => {
-            speak(introText);
+            speak(fullInstruction);
         },
 
-        // RIGHT BUTTON: I DID IT (Trigger Re-Scan)
+        // RIGHT: NEXT (Re-Scan)
         () => {
             startReScanForLayer2();
         }
