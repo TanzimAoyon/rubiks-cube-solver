@@ -21,7 +21,8 @@ let cubeMap = {
 
 
 let hasFlippedForCross = false;
-
+// this is a flag (a memory switch)
+let isScanningForLayer2 = false;
 
 // --- 1. CAMERA SETUP (Fixed for Mobile) ---
 async function startCamera() {
@@ -131,13 +132,25 @@ function scanFace() {
     // 5. Advance Index
     currentSideIndex++;
 
-    // 6. DEBUGGING BLOCK STARTS HERE
+// 6. DEBUGGING BLOCK STARTS HERE
     if (currentSideIndex < scanOrder.length) {
         let nextSide = scanOrder[currentSideIndex];
         let nextColor = sideColors[nextSide];
         speak(`Show the ${nextColor} center.`, `Show ${nextColor} center, then Scan.`);
     } else {
-        // THIS IS WHERE IT WAS CRASHING
+        // --- SCAN COMPLETE ---
+        console.log("Scan Complete!");
+
+        // 👇👇 NEW LOGIC STARTS HERE 👇👇
+        if (isScanningForLayer2) {
+            // We are in the middle of a game (Layer 2)
+            speak("Scan complete. Let's solve the Middle Layer.");
+            startMiddleLayerSolver(); 
+            return; // Stop here! Do not check for Daisy.
+        }
+        // 👆👆 NEW LOGIC ENDS HERE 👆👆
+
+        // --- OLD LOGIC (Only runs for New Game) ---
         try {
             // Check if external functions exist
             if (typeof isCubeSolved !== "function") {
@@ -163,7 +176,6 @@ function scanFace() {
                 scanBtn.className = "w-full bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg";
                 scanBtn.onclick = startWhiteCross; 
                 speak("Daisy found. Let's solve the cross.");
-            // --- PATH B: NO DAISY -> START DAISY INSTRUCTIONS ---
             } else {
                 instructionText.innerText = "Scanning Complete! Let's make the Daisy.";
                 scanBtn.innerText = "START DAISY";
@@ -171,19 +183,16 @@ function scanFace() {
                 
                 scanBtn.onclick = startDaisySolver;
                 
-                // UPDATED SPEECH: Detailed instructions
                 speak(
                     "Make a daisy by keeping the yellow block in the center, and 4 white petals on the top, bottom, right, and left of that yellow middle piece.", 
-                    "Scanning Complete! Make the Daisy." // Short text for screen
+                    "Scanning Complete! Make the Daisy." 
                 );
             }
 
         } catch (error) {
-            // PRINT ERROR TO SCREEN
             console.error(error);
             instructionText.innerText = "CRITICAL ERROR: " + error.message;
             instructionText.style.color = "red";
-            instructionText.style.fontSize = "16px";
             speak("System Error. Please check the screen.");
         }
     }
@@ -820,10 +829,13 @@ function startCornersInstruction() {
 }
 // --- RE-SCAN LOGIC ---
 function startReScanForLayer2() {
-    // 1. HIDE IMAGES / RESTORE GRID
+    // 1. SET THE FLAG TO TRUE (Important!)
+    isScanningForLayer2 = true;
+
+    // 2. HIDE IMAGES / RESTORE GRID
     removeTriggerOverlay();
     
-    // 2. Cleanup UI
+    // 3. Cleanup UI
     removeControls();
     
     if (scanBtn) {
@@ -832,15 +844,15 @@ function startReScanForLayer2() {
         scanBtn.className = "w-full bg-yellow-500 text-black font-bold py-4 rounded-xl shadow-lg";
     }
 
-    // 3. Reset Memory
+    // 4. Reset Memory
     currentSideIndex = 0;
     scanOrder.forEach(side => cubeMap[side] = []);
 
-    // 4. Prompt User
+    // 5. Prompt User
     instructionText.innerText = "Great! Let's check your work. Show Green Front.";
     speak("Great job. Now I need to scan the cube again to help you with the next layer. Show me the Green Front.");
 
-    // 5. Link Button
+    // 6. Link Button
     scanBtn.onclick = scanFace; 
 }
 
