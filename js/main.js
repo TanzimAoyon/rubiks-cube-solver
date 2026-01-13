@@ -441,13 +441,11 @@ function startWhiteCross() {
 
 
 // Global flag to track if we already gave the intro speech
+// Global flag for the strategy intro
 let cornersIntroPlayed = false;
 
 function startCornersSolver() {
     // 1. NO FLIP LOGIC (Raw Data)
-    // Memory: Right=Red, Left=Orange
-    // Physical (Yellow Top): Right Hand=Orange, Left Hand=Red
-
     try {
         if (typeof getCornersMove !== "function") throw new Error("Missing getCornersMove");
         
@@ -458,86 +456,143 @@ function startCornersSolver() {
         if (move === "DONE") {
             speak("First Layer Complete! Great job.");
             instructionText.innerText = "Layer 1 DONE! 🏆";
+            
+            // Restore single button for next layer
+            removeControls(); 
+            scanBtn.style.display = "block"; 
             scanBtn.innerText = "NEXT: LAYER 2";
             return;
         }
 
         // --- STRATEGY EXPLANATION (Plays Once) ---
         if (!cornersIntroPlayed) {
-            cornersIntroPlayed = true; // Mark as done
-            
-            // YOUR CUSTOM EXPLANATION 👇
+            cornersIntroPlayed = true; 
             speak(
-                "Now we look for white corner stickers on the top or bottom layers. Find a white corner, look at its side color, and rotate the Yellow Top until that color matches its center diagonally. Then, we perform a trigger move based on which side the white sticker is facing.",
+                "Now we look for white corner stickers. Find a white corner, look at its side color, and rotate the Yellow Top until that color matches its center diagonally. Then, we perform a trigger move based on which side the white sticker is facing.",
                 "Strategy: Match & Trigger"
             );
             
-            // Stop here so the user can listen, then they click "Next" to get the first move.
-            scanBtn.innerText = "I UNDERSTAND (Start)";
-            scanBtn.onclick = startCornersSolver;
+            // Show the 3 buttons immediately for the intro too
+            updateControls(
+                // Button 1: Repeat
+                () => speak("Find a white corner, match its side color diagonally, then trigger.", "Strategy: Match & Trigger"),
+                // Button 2: Video
+                () => showVideoHelp("intro"),
+                // Button 3: Next
+                () => startCornersSolver()
+            );
             return;
         }
 
-        // --- INSTRUCTIONS (COLOR BASED) ---
-        
-        // CASE: Match on RED (Physical Left)
+        // --- DEFINE THE TEXT & AUDIO FOR THE CURRENT MOVE ---
+        let audioMsg = "";
+        let textMsg = "";
+        let moveCode = ""; // The code to execute on "Next"
+
         if (move === "Right Trigger") {
-            instructionText.innerText = "Match on RED (Left)";
-            
-            speak(
-                "Match found on the Red side! Since the white sticker is on the Red side, perform the Red Trigger. Lift Red, Pull Top, Down Red.", 
-                "RED Trigger: R D' R'"
-            );
-            
-            // Logic: Red Trigger on Left Hand (Red Face)
-            virtualMove("R D' R'", cubeMap); 
+            textMsg = "Match on RED (Left)";
+            audioMsg = "Match found on the Red side! Lift Red, Pull Top, Down Red.";
+            moveCode = "R D' R'";
         }
-        
-        // CASE: Match on ORANGE (Physical Right)
         else if (move === "Left Trigger") {
-            instructionText.innerText = "Match on ORANGE (Right)";
-            
-            speak(
-                "Match found on the Orange side! Since the white sticker is on the Orange side, perform the Orange Trigger. Lift Orange, Push Top, Down Orange.", 
-                "ORANGE Trigger: L D L'"
-            );
-            
-            // Logic: Orange Trigger on Right Hand (Orange Face)
-            virtualMove("L D L'", cubeMap);
+            textMsg = "Match on ORANGE (Right)";
+            audioMsg = "Match found on the Orange side! Lift Orange, Push Top, Down Orange.";
+            moveCode = "L D L'";
         }
-
-        // CASE: Top Twist (White on Top)
         else if (move === "Top Twist") {
-            instructionText.innerText = "White on Top? Twist it.";
-            speak(
-                "The white sticker is facing up. Perform the Red Trigger three times to fix it.", 
-                "Red Trigger x3"
-            );
-            virtualMove("R D' R' R D' R' R D' R'", cubeMap); 
+            textMsg = "White on Top? Twist it.";
+            audioMsg = "The white sticker is facing up. Perform the Red Trigger three times.";
+            moveCode = "R D' R' R D' R' R D' R'";
         }
-
-        // CASE: Rotate Top (Searching)
         else if (move === "D") {
-            instructionText.innerText = "Rotate Top (Search)";
-            
-            // YOUR SPECIFIC INSTRUCTION 👇
-            speak(
-                "Rotate the Yellow Top face. Look at the non-white side sticker of the corner pieces. Stop when it diagonally matches its center color.", 
-                "Rotate Top ➡️ (Match Side Color)"
-            );
-            
-            virtualMove("D", cubeMap);
+            textMsg = "Rotate Top ➡️ (Match Side)";
+            audioMsg = "Rotate the Yellow Top face. Look at the non-white side sticker. Stop when it diagonally matches its center color.";
+            moveCode = "D";
         }
 
-        // --- LOOP ---
-        scanBtn.innerText = "I DID IT (Next)";
-        scanBtn.onclick = startCornersSolver;
+        // 1. Speak instructions immediately
+        instructionText.innerText = textMsg;
+        speak(audioMsg);
+
+        // 2. Show the 3 Buttons
+        updateControls(
+            // Repeat Action
+            () => speak(audioMsg), 
+            // Video Action
+            () => showVideoHelp(move),
+            // Next Action (Execute & Loop)
+            () => {
+                virtualMove(moveCode, cubeMap);
+                startCornersSolver();
+            }
+        );
 
     } catch (e) {
         console.error(e);
         instructionText.innerText = "Error: " + e.message;
         instructionText.style.color = "red";
     }
+}
+
+// --- HELPER FUNCTIONS FOR THE BUTTONS ---
+
+function updateControls(onRepeat, onVideo, onNext) {
+    // 1. Hide the main big button
+    scanBtn.style.display = "none";
+
+    // 2. Check if our custom controls exist, if not create them
+    let controlsDiv = document.getElementById("solver-controls");
+    if (!controlsDiv) {
+        controlsDiv = document.createElement("div");
+        controlsDiv.id = "solver-controls";
+        controlsDiv.style.display = "flex";
+        controlsDiv.style.gap = "10px";
+        controlsDiv.style.marginTop = "10px";
+        controlsDiv.style.justifyContent = "center";
+        
+        // Insert below the instruction text
+        instructionText.parentElement.appendChild(controlsDiv);
+    }
+
+    // 3. Clear old buttons
+    controlsDiv.innerHTML = "";
+
+    // 4. Create Button 1: REPEAT (Yellow)
+    let btnRepeat = createButton("↺ Repeat", "orange", onRepeat);
+    
+    // 5. Create Button 2: VIDEO (Blue)
+    let btnVideo = createButton("🎥 Help", "blue", onVideo);
+
+    // 6. Create Button 3: NEXT (Green)
+    let btnNext = createButton("✅ Next", "green", onNext);
+
+    // Append them
+    controlsDiv.appendChild(btnRepeat);
+    controlsDiv.appendChild(btnVideo);
+    controlsDiv.appendChild(btnNext);
+}
+
+function createButton(text, color, onClick) {
+    let btn = document.createElement("button");
+    btn.innerText = text;
+    btn.onclick = onClick;
+    // Styling
+    btn.className = "py-3 px-4 rounded-xl shadow-lg font-bold text-white flex-1";
+    if (color === "green") btn.style.backgroundColor = "#16a34a"; // Green-600
+    if (color === "blue") btn.style.backgroundColor = "#2563eb";  // Blue-600
+    if (color === "orange") btn.style.backgroundColor = "#ea580c"; // Orange-600
+    return btn;
+}
+
+function removeControls() {
+    let controlsDiv = document.getElementById("solver-controls");
+    if (controlsDiv) controlsDiv.remove();
+}
+
+// Placeholder for Video
+function showVideoHelp(moveType) {
+    // You can replace this later with actual video logic!
+    alert("Play Video for: " + moveType + "\n(Video feature coming soon!)");
 }
 
 
