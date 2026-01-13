@@ -707,12 +707,11 @@ function getFaceName(letter) {
 }
 
 // --- 3-BUTTON MANUAL UI ---
+// --- 3-BUTTON MANUAL UI ---
 function createManualControls(onHelp, onRepeat, onNext) {
-    // 1. Cleanup
     removeControls();
     if (scanBtn) scanBtn.style.display = "none";
 
-    // 2. Create Container
     let container = document.createElement("div");
     container.id = "solver-controls";
     container.style.position = "fixed"; 
@@ -721,18 +720,19 @@ function createManualControls(onHelp, onRepeat, onNext) {
     container.style.width = "90%";
     container.style.display = "flex";
     container.style.gap = "10px";
-    container.style.zIndex = "9999"; 
     
-    // 3. LEFT BUTTON: HELP (Video) - Blue
+    // 3. LAYERING FIX: Set Z-Index higher than overlay (100)
+    container.style.zIndex = "200"; // <--- HIGHER THAN OVERLAY
+    
+    // LEFT BUTTON: HELP (Video)
     let btnHelp = makeBtn("🎥 Help", "#3b82f6", onHelp);
 
-    // 4. MIDDLE BUTTON: REPEAT - Orange/Yellow
+    // MIDDLE BUTTON: REPEAT
     let btnRepeat = makeBtn("↺ Repeat", "#f59e0b", onRepeat);
     
-    // 5. RIGHT BUTTON: I DID IT (Next) - Green
-    let btnNext = makeBtn("I Did It (Next) ➡️", "#22c55e", onNext);
+    // RIGHT BUTTON: NEXT
+    let btnNext = makeBtn("I Did It ➡️", "#22c55e", onNext);
 
-    // Add in correct order
     container.appendChild(btnHelp);
     container.appendChild(btnRepeat);
     container.appendChild(btnNext);
@@ -888,73 +888,72 @@ function showTriggerOverlay() {
 
     let overlay = document.createElement("div");
     overlay.id = "trigger-overlay";
-    // Force full screen black overlay
+    
+    // 1. LAYERING FIX: Set Z-Index to 100 (High, but not highest)
     overlay.style.position = "fixed";
     overlay.style.top = "0";
     overlay.style.left = "0";
     overlay.style.width = "100vw";
     overlay.style.height = "100vh";
-    overlay.style.backgroundColor = "#000000";
-    overlay.style.zIndex = "2147483647"; 
+    overlay.style.backgroundColor = "#000000"; // Black background
+    overlay.style.zIndex = "100"; // <--- LOWERED THIS (Was 2 billion)
+    
     overlay.style.display = "flex";
     overlay.style.flexDirection = "column";
     overlay.style.alignItems = "center";
-    overlay.style.justifyContent = "start"; // Start from top
-    overlay.style.paddingTop = "20px";
-    overlay.style.overflowY = "auto"; // Allow scrolling if screens are small
+    overlay.style.justifyContent = "start"; 
+    overlay.style.paddingTop = "80px"; // Space for text at top
+    overlay.style.overflowY = "auto"; 
+    overlay.style.paddingBottom = "150px"; // Extra space at bottom for buttons
 
-    let title = document.createElement("h2");
-    title.innerText = "Tap Image for Instructions";
-    title.style.color = "white";
-    title.style.marginBottom = "20px";
-    overlay.appendChild(title);
+    // 2. Add Visible Text Instruction inside the overlay
+    let instruction = document.createElement("p");
+    instruction.innerText = "Tap an image to hear the instructions.";
+    instruction.style.color = "#ffffff";
+    instruction.style.fontSize = "18px";
+    instruction.style.textAlign = "center";
+    instruction.style.marginBottom = "20px";
+    instruction.style.padding = "0 20px";
+    overlay.appendChild(instruction);
 
     let imgContainer = document.createElement("div");
     imgContainer.style.display = "flex";
-    imgContainer.style.flexDirection = "column"; // Vertical Stack
-    imgContainer.style.gap = "30px"; // Space between images
+    imgContainer.style.flexDirection = "column"; 
+    imgContainer.style.gap = "40px"; 
     imgContainer.style.width = "100%";
     imgContainer.style.alignItems = "center";
-    imgContainer.style.paddingBottom = "100px"; // Space for buttons at bottom
 
-    // --- 1. RIGHT TRIGGER IMAGE (TOP) ---
+    // --- RIGHT TRIGGER (TOP) ---
     let imgRight = document.createElement("img");
     imgRight.src = "assets/right-trigger.png"; 
-    imgRight.alt = "Right Trigger (Tap to hear)";
-    imgRight.style.width = "95%";  // Much Larger
+    imgRight.style.width = "90%";
     imgRight.style.maxWidth = "500px";
-    imgRight.style.border = "4px solid #ef4444"; // Red Border
+    imgRight.style.border = "4px solid #ef4444"; // Red
     imgRight.style.borderRadius = "20px";
-    imgRight.style.cursor = "pointer"; // Makes it look clickable
+    imgRight.style.cursor = "pointer";
     
-    // CLICK TO SPEAK RIGHT TRIGGER
-    imgRight.onclick = () => {
+    // CLICK INTERACTION
+    imgRight.onclick = (e) => {
+        // Stop the click from bubbling up
+        e.stopPropagation();
         speak("For right trigger. You are going to use your right hand to perform the three move sequence, by rotating right face away from you, pulling the top face towards you with your right index finger. Then rotating the right face back towards you.");
     };
-
-    // Error Fallback
-    imgRight.onerror = function() { this.style.display = "none"; };
-
-
-    // --- 2. LEFT TRIGGER IMAGE (BOTTOM) ---
+    
+    // --- LEFT TRIGGER (BOTTOM) ---
     let imgLeft = document.createElement("img");
     imgLeft.src = "assets/left-trigger.png"; 
-    imgLeft.alt = "Left Trigger (Tap to hear)";
-    imgLeft.style.width = "95%"; // Much Larger
+    imgLeft.style.width = "90%";
     imgLeft.style.maxWidth = "500px";
-    imgLeft.style.border = "4px solid #f97316"; // Orange Border
+    imgLeft.style.border = "4px solid #f97316"; // Orange
     imgLeft.style.borderRadius = "20px";
-    imgLeft.style.cursor = "pointer"; // Makes it look clickable
+    imgLeft.style.cursor = "pointer";
 
-    // CLICK TO SPEAK LEFT TRIGGER
-    imgLeft.onclick = () => {
+    // CLICK INTERACTION
+    imgLeft.onclick = (e) => {
+        e.stopPropagation();
         speak("To perform the left trigger, rotate the left face away from you. Pull the top face towards you with your left index finger, then rotating back the left face towards you.");
     };
-    
-    // Error Fallback
-    imgLeft.onerror = function() { this.style.display = "none"; };
 
-    // Append in correct order (Right Top, Left Bottom)
     imgContainer.appendChild(imgRight);
     imgContainer.appendChild(imgLeft);
     overlay.appendChild(imgContainer);
