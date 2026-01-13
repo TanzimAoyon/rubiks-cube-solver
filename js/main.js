@@ -424,9 +424,23 @@ function startWhiteCross() {
 
 function startCornersSolver() {
     // 1. Sync check
+// 1. PERFECT SYNC (Yellow Top, Green Front)
+    // When you flip White->Yellow on Top, Right/Left also swap places!
     if (!hasFlippedForCross) {
-        let tempUp = cubeMap.up; cubeMap.up = cubeMap.down; cubeMap.down = tempUp;
-        let tempFront = cubeMap.front; cubeMap.front = cubeMap.back; cubeMap.back = tempFront;
+        
+        // Swap Up (White) <-> Down (Yellow)
+        let tempUp = cubeMap.up; 
+        cubeMap.up = cubeMap.down; 
+        cubeMap.down = tempUp;
+
+        // DO NOT Swap Front/Back (Green stays Front)
+        
+        // SWAP Right (Red) <-> Left (Orange)
+        // Because physically, Orange is now on your Right!
+        let tempRight = cubeMap.right;
+        cubeMap.right = cubeMap.left;
+        cubeMap.left = tempRight;
+
         hasFlippedForCross = true;
     }
 
