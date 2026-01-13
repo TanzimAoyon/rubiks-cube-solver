@@ -1,3 +1,4 @@
+
 // --- CONFIGURATION ---
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
@@ -17,6 +18,10 @@ let currentSideIndex = 0;
 let cubeMap = {
     front: [], right: [], back: [], left: [], up: [], down: []
 };
+
+
+let hasFlippedForCross = false;
+
 
 // --- 1. CAMERA SETUP (Fixed for Mobile) ---
 async function startCamera() {
@@ -359,7 +364,7 @@ function isCenterCorrect(faceColors, expectedColor) {
 
 // Global flag to ensure we only flip the cube once
 // Global flag to ensure we only flip the cube once
-let hasFlippedForCross = false; 
+
 
 function startWhiteCross() {
     // 1. NO FLIPPING CODE. We use the raw data now.
@@ -423,8 +428,7 @@ function startWhiteCross() {
 
 
 function startCornersSolver() {
-    // 1. Sync check
-// 1. PERFECT SYNC (Yellow Top, Green Front)
+    // 1. PERFECT SYNC (Yellow Top, Green Front)
     // When you flip White->Yellow on Top, Right/Left also swap places!
     if (!hasFlippedForCross) {
         
@@ -455,6 +459,7 @@ function startCornersSolver() {
             speak("First Layer Complete! Great job.");
             instructionText.innerText = "Layer 1 DONE! 🏆";
             scanBtn.innerText = "NEXT: LAYER 2";
+            // scanBtn.onclick = startLayer2Solver; // Next step
             return;
         }
 
@@ -465,8 +470,9 @@ function startCornersSolver() {
                 "Match found! Perform the Right Trigger. Right Up, Pull Top, Right Down.", 
                 "Right Trigger (R D R')"
             );
-            // Execute: R D R' (Remember D' is our code for 'Pull')
-            virtualMove("R D' R'", cubeMap); 
+            // CORRECTION: D = Pull (Clockwise). 
+            // So Right Trigger (R U R') becomes R D R'
+            virtualMove("R D R'", cubeMap); 
         }
         else if (move === "Left Trigger") {
             instructionText.innerText = "Left Trigger (L' D' L)";
@@ -474,17 +480,18 @@ function startCornersSolver() {
                 "Match found! Perform the Left Trigger. Left Up, Push Top, Left Down.", 
                 "Left Trigger (L' D' L)"
             );
-            // Execute: L' D L (Remember D is 'Push' in our reversed logic)
-            virtualMove("L' D L", cubeMap);
+            // CORRECTION: D' = Push (Counter-Clockwise).
+            // So Left Trigger (L' U' L) becomes L' D' L
+            virtualMove("L' D' L", cubeMap);
         }
         else if (move === "Top Twist") {
-            instructionText.innerText = "White on Top? Do 3x Right Trigger";
+            instructionText.innerText = "White on Top? Twist it.";
             speak(
-                "White is on top. Do the Right Trigger 3 times to fix it.", 
-                "Right Trigger x3"
+                "White is on top. Perform this twist move.", 
+                "R D2 R' D' R D R'"
             );
-            // Standard fix for top white is roughly 3 triggers
-            virtualMove("R D' R' D' R D' R' D' R D' R'", cubeMap); 
+            // Standard Sune algorithm to fix top-facing white
+            virtualMove("R D2 R' D' R D R'", cubeMap); 
         }
         else if (move === "D") {
             instructionText.innerText = "Rotate Top (Finding Match...)";
@@ -523,51 +530,4 @@ function getFaceName(letter) {
 
 
 
-// --- FIRST LAYER SOLVER (Natural Language Version) ---
-
-function startCornersSolver() {
-    // 1. Ask the brain for the move (from corners-solver.js)
-    let move = getCornerMove(cubeMap);
-
-    // 2. Victory Check
-    if (move === "DONE") {
-        speak("First layer is complete! Great work.");
-        instructionText.innerText = "Layer 1 Done! ✅";
-        instructionText.style.color = "#4ade80";
-        scanBtn.innerText = "NEXT: 2ND LAYER";
-        // scanBtn.onclick = startSecondLayer; // We will build this next
-        return;
-    }
-
-    // 3. Natural Language Translation
-    if (move === "R U R' U'") {
-        // The "Righty Alg" translated to plain English
-        speak(
-            "We need to twist this corner. Move the Right side UP. Push the Top to the LEFT. Bring the Right side DOWN. Push the Top back to the RIGHT.",
-            "Right UP -> Top LEFT -> Right DOWN -> Top RIGHT" // Short Text
-        );
-        
-        // Update Backend (Must do all 4 moves)
-        virtualMove("R", cubeMap);
-        virtualMove("U", cubeMap);
-        virtualMove("R'", cubeMap);
-        virtualMove("U'", cubeMap);
-    } 
-    else if (move === "U") {
-        speak(
-            "Rotate the top face to find the correct corner piece.",
-            "Rotate Top Face (Search)"
-        );
-        virtualMove("U", cubeMap);
-    }
-    else {
-        // Fallback for safety
-        speak("Please perform " + move, move);
-        virtualMove(move, cubeMap);
-    }
-
-    // 4. Loop
-    scanBtn.innerText = "I DID IT (Next)";
-    scanBtn.onclick = startCornersSolver;
-}
 
