@@ -392,9 +392,17 @@ function startWhiteCross() {
         // 3. TRANSLATE MOVES TO COLORS (The Fix)
         // We map the letters (R, L, F, B) to the actual colors you see.
         
+        // ... inside startWhiteCross ...
+
         if (move === "D") {
-            speak("Rotate the top face until the side sticker matches its center.", "Rotate Top (Match Center)");
+            speak(
+                // AUDIO: Very specific
+                "Rotate the Yellow Top. Look at the side color of the white petals. Stop when one matches its center.", 
+                // TEXT:
+                "Rotate Top ➡️ (Match Petal Side)"
+            );
         } 
+
         else if (move.includes("2")) {
             // It wants to turn a side 2 times (e.g., "R2")
             let faceLetter = move[0]; 
@@ -432,6 +440,8 @@ function startWhiteCross() {
 }
 
 
+// Global flag to track if we already gave the intro speech
+let cornersIntroPlayed = false;
 
 function startCornersSolver() {
     // 1. NO FLIP LOGIC (Raw Data)
@@ -452,54 +462,70 @@ function startCornersSolver() {
             return;
         }
 
+        // --- STRATEGY EXPLANATION (Plays Once) ---
+        if (!cornersIntroPlayed) {
+            cornersIntroPlayed = true; // Mark as done
+            
+            // YOUR CUSTOM EXPLANATION 👇
+            speak(
+                "Now we look for white corner stickers on the top or bottom layers. Find a white corner, look at its side color, and rotate the Yellow Top until that color matches its center diagonally. Then, we perform a trigger move based on which side the white sticker is facing.",
+                "Strategy: Match & Trigger"
+            );
+            
+            // Stop here so the user can listen, then they click "Next" to get the first move.
+            scanBtn.innerText = "I UNDERSTAND (Start)";
+            scanBtn.onclick = startCornersSolver;
+            return;
+        }
+
         // --- INSTRUCTIONS (COLOR BASED) ---
         
-        // CASE: Memory "Right Trigger" (Red Side)
-        // Since Memory Right = Red, and Red is on your LEFT...
-        // We perform the trigger on the RED Face.
+        // CASE: Match on RED (Physical Left)
         if (move === "Right Trigger") {
             instructionText.innerText = "Match on RED (Left)";
+            
             speak(
-                "Match found on the Red side. Perform the Red Trigger.", 
-                "RED Trigger (Left Hand): L' D' L"
+                "Match found on the Red side! Since the white sticker is on the Red side, perform the Red Trigger. Lift Red, Pull Top, Down Red.", 
+                "RED Trigger: R D' R'"
             );
-            // Red Face Trigger: Lift Red (L'), Push Top (D'), Down Red (L)
-            // (Note: 'L' in virtualMove turns the Orange face, 'R' turns Red)
-            // Wait, virtualMove R = Red. So we use R.
-            // Red Trigger: R D R' (Lift Red, Push Top, Down Red)
-            // BUT: D pushes towards Left (Red). We want to push AWAY from Red (towards Orange).
-            // So we use D' (Pull).
-            // CORRECT RED TRIGGER: R D' R'
+            
+            // Logic: Red Trigger on Left Hand (Red Face)
             virtualMove("R D' R'", cubeMap); 
         }
         
-        // CASE: Memory "Left Trigger" (Orange Side)
-        // Since Memory Left = Orange, and Orange is on your RIGHT...
-        // We perform the trigger on the ORANGE Face.
+        // CASE: Match on ORANGE (Physical Right)
         else if (move === "Left Trigger") {
             instructionText.innerText = "Match on ORANGE (Right)";
+            
             speak(
-                "Match found on the Orange side. Perform the Orange Trigger.", 
-                "ORANGE Trigger (Right Hand): L D L'"
+                "Match found on the Orange side! Since the white sticker is on the Orange side, perform the Orange Trigger. Lift Orange, Push Top, Down Orange.", 
+                "ORANGE Trigger: L D L'"
             );
-            // Orange Face Trigger: Lift Orange (L), Push Top (D), Down Orange (L')
-            // virtualMove L = Orange.
-            // Push away from Orange = Push towards Red (D).
-            // CORRECT ORANGE TRIGGER: L D L'
+            
+            // Logic: Orange Trigger on Right Hand (Orange Face)
             virtualMove("L D L'", cubeMap);
         }
 
         // CASE: Top Twist (White on Top)
         else if (move === "Top Twist") {
             instructionText.innerText = "White on Top? Twist it.";
-            speak("White is on top. Do the Red Trigger 3 times.", "Red Trigger x3");
+            speak(
+                "The white sticker is facing up. Perform the Red Trigger three times to fix it.", 
+                "Red Trigger x3"
+            );
             virtualMove("R D' R' R D' R' R D' R'", cubeMap); 
         }
 
-        // CASE: Rotate Top
+        // CASE: Rotate Top (Searching)
         else if (move === "D") {
             instructionText.innerText = "Rotate Top (Search)";
-            speak("Rotate the top face to find a Red or Orange match.", "Rotate Top ➡️");
+            
+            // YOUR SPECIFIC INSTRUCTION 👇
+            speak(
+                "Rotate the Yellow Top face. Look at the non-white side sticker of the corner pieces. Stop when it diagonally matches its center color.", 
+                "Rotate Top ➡️ (Match Side Color)"
+            );
+            
             virtualMove("D", cubeMap);
         }
 
