@@ -1066,13 +1066,13 @@ function startMiddleLayerInstruction() {
     showMiddleLayerOverlay(); 
 
     // --- B. DEFINE SPEECHES ---
-    let introText = "Strategy: Find an edge on the Top Layer that has NO Yellow colors. Match its front color to its center to make a 'T' shape. Look at the top color of that piece. You need to push it AWAY from that color's side. Tap the images to hear the Right vs Left moves.";
+    let introText = "Strategy: Find an edge on the Top Layer that has NO Yellow colors. Match its front color to its center to make a upside down 'T' shape. Look at the top color of that piece.see wheather it matches the left center or right center. use your matched color side hand , and pull the top face towards you 90 degree, which will push it AWAY from that color's side. then do a  trigger move with the same hand. Tap the images to hear the Right vs Left moves.";
 
     let case1Text = "Case 1: Edge is Stuck. If an edge piece is stuck in the middle layer but in the wrong spot, hold it on the Right side and perform the Right Move once. This pops it out to the top layer so you can solve it.";
     
     let case2Text = "Case 2: No Edges on Top. If all pieces on the top layer have yellow on them, it means your middle edges are stuck in the second layer. Use Case 1 to pop them out.";
 
-    let fullSpeech = introText + " ... " + case1Text + " ... " + case2Text;
+    let fullSpeech = introText + " .... " + case1Text + " .... " + case2Text;
 
     // --- C. SPEAK ---
     instructionText.innerText = "Tutorial: Middle Layer Edges";
@@ -1090,7 +1090,7 @@ function startMiddleLayerInstruction() {
         () => openVideo("YOUR_VIDEO_ID_HERE"),
 
         // 4. REPEAT
-        () => speak(fullSpeech),
+        () => speak(introText),
 
         // 5. NEXT -> Start Layer 4 (Top Cross)
         () => startReScanForLayer3()
