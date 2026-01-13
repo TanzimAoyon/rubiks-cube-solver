@@ -367,14 +367,14 @@ function isCenterCorrect(faceColors, expectedColor) {
 
 
 function startWhiteCross() {
-    // 1. NO FLIPPING CODE. We use the raw data now.
+    // 1. Reset Flag
+    hasFlippedForCross = false; 
 
     try {
-        // 2. Ask the Brain
         if (typeof getCrossMove !== "function") throw new Error("Missing getCrossMove");
         let move = getCrossMove(cubeMap);
         
-        // 3. Victory
+        // 2. Victory
         if (move === "DONE") {
             speak("Cross completed! Proceeding to corners.");
             instructionText.innerText = "Cross Done! ✅";
@@ -389,33 +389,38 @@ function startWhiteCross() {
              return;
         }
 
-        // 4. TRANSLATE & SPEAK
-        // CRITICAL: The brain says "D" (Down), but you are holding Yellow on Top.
-        // So we tell you "Rotate Top".
+        // 3. TRANSLATE MOVES TO COLORS (The Fix)
+        // We map the letters (R, L, F, B) to the actual colors you see.
         
         if (move === "D") {
-            speak(
-                "Rotate the top face until the side sticker matches its center.", 
-                "Rotate Top (Match Center)"
-            );
+            speak("Rotate the top face until the side sticker matches its center.", "Rotate Top (Match Center)");
         } 
         else if (move.includes("2")) {
-            // F2, R2, etc.
-            let face = move[0]; 
+            // It wants to turn a side 2 times (e.g., "R2")
+            let faceLetter = move[0]; 
+            let colorName = "";
+            
+            // Map Letter to Color
+            if (faceLetter === 'F') colorName = "Green";
+            if (faceLetter === 'R') colorName = "Red";    // The confusing one!
+            if (faceLetter === 'L') colorName = "Orange"; // The other confusing one!
+            if (faceLetter === 'B') colorName = "Blue";
+            
             speak(
-                `Match found! Turn the ${face} face two times to bring the white piece to the bottom.`, 
-                `Turn ${face} Face 2x`
+                `Match found! Turn the ${colorName} face two times.`, 
+                `Turn ${colorName} Face 2x`
             );
         }
         else {
+             // Fallback for other moves
              speak(`Perform move ${move}`, move);
         }
 
-        // 5. Update Memory
+        // 4. Update Memory
         if (typeof virtualMove !== "function") throw new Error("Missing virtualMove");
         virtualMove(move, cubeMap);
 
-        // 6. Loop
+        // 5. Loop
         scanBtn.innerText = "I DID IT (Next)";
         scanBtn.onclick = startWhiteCross;
 
@@ -428,12 +433,10 @@ function startWhiteCross() {
 
 
 
-
-
 function startCornersSolver() {
-    // 1. NO FLIP LOGIC. We use the raw scan data.
-    // Memory: Up=White, Down=Yellow, Front=Green, Right=Red, Left=Orange.
-    // Physical Reality (Yellow Top): Right Hand=Orange, Left Hand=Red.
+    // 1. NO FLIP LOGIC (Raw Data)
+    // Memory: Right=Red, Left=Orange
+    // Physical (Yellow Top): Right Hand=Orange, Left Hand=Red
 
     try {
         if (typeof getCornersMove !== "function") throw new Error("Missing getCornersMove");
@@ -449,51 +452,54 @@ function startCornersSolver() {
             return;
         }
 
-        // --- INSTRUCTIONS (MAPPED TO YOUR HANDS) ---
+        // --- INSTRUCTIONS (COLOR BASED) ---
         
-        // CASE: Right Trigger
-        // Physical: Right Hand (Orange Side)
-        // Memory: Orange is 'Left'. So we operate on the 'Left' face in memory.
+        // CASE: Memory "Right Trigger" (Red Side)
+        // Since Memory Right = Red, and Red is on your LEFT...
+        // We perform the trigger on the RED Face.
         if (move === "Right Trigger") {
-            instructionText.innerText = "Right Trigger (R D R')";
+            instructionText.innerText = "Match on RED (Left)";
             speak(
-                "Match found! Perform the Right Trigger. Right Up, Pull Top, Right Down.", 
-                "Right Trigger (R D R')"
+                "Match found on the Red side. Perform the Red Trigger.", 
+                "RED Trigger (Left Hand): L' D' L"
             );
-            // MAP: Physical Right (Orange) = Memory Left
-            // Action: Lift Left (L), Pull Top (D), Down Left (L')
-            // Wait! Lift Orange (Standard L) moves Top to Front. We want Front to Top (L').
-            // Correct Map for "Right Trigger" on Orange side: L D L'
-            virtualMove("L D L'", cubeMap); 
+            // Red Face Trigger: Lift Red (L'), Push Top (D'), Down Red (L)
+            // (Note: 'L' in virtualMove turns the Orange face, 'R' turns Red)
+            // Wait, virtualMove R = Red. So we use R.
+            // Red Trigger: R D R' (Lift Red, Push Top, Down Red)
+            // BUT: D pushes towards Left (Red). We want to push AWAY from Red (towards Orange).
+            // So we use D' (Pull).
+            // CORRECT RED TRIGGER: R D' R'
+            virtualMove("R D' R'", cubeMap); 
         }
         
-        // CASE: Left Trigger
-        // Physical: Left Hand (Red Side)
-        // Memory: Red is 'Right'. So we operate on the 'Right' face in memory.
+        // CASE: Memory "Left Trigger" (Orange Side)
+        // Since Memory Left = Orange, and Orange is on your RIGHT...
+        // We perform the trigger on the ORANGE Face.
         else if (move === "Left Trigger") {
-            instructionText.innerText = "Left Trigger (L' D' L)";
+            instructionText.innerText = "Match on ORANGE (Right)";
             speak(
-                "Match found! Perform the Left Trigger. Left Up, Push Top, Left Down.", 
-                "Left Trigger (L' D' L)"
+                "Match found on the Orange side. Perform the Orange Trigger.", 
+                "ORANGE Trigger (Right Hand): L D L'"
             );
-            // MAP: Physical Left (Red) = Memory Right
-            // Action: Lift Red (R' moves Front to Top), Push Top (D'), Down Red (R)
-            // Correct Map for "Left Trigger" on Red side: R' D' R
-            virtualMove("R' D' R", cubeMap);
+            // Orange Face Trigger: Lift Orange (L), Push Top (D), Down Orange (L')
+            // virtualMove L = Orange.
+            // Push away from Orange = Push towards Red (D).
+            // CORRECT ORANGE TRIGGER: L D L'
+            virtualMove("L D L'", cubeMap);
         }
 
         // CASE: Top Twist (White on Top)
         else if (move === "Top Twist") {
             instructionText.innerText = "White on Top? Twist it.";
-            speak("White is on top. Perform the Right Trigger 3 times.", "Right Trigger x3");
-            // 3x Right Trigger (L D L')
-            virtualMove("L D L' L D L' L D L'", cubeMap); 
+            speak("White is on top. Do the Red Trigger 3 times.", "Red Trigger x3");
+            virtualMove("R D' R' R D' R' R D' R'", cubeMap); 
         }
 
         // CASE: Rotate Top
         else if (move === "D") {
-            instructionText.innerText = "Rotate Top (Finding Match...)";
-            speak("Rotate the top face to find a match.", "Rotate Top ➡️");
+            instructionText.innerText = "Rotate Top (Search)";
+            speak("Rotate the top face to find a Red or Orange match.", "Rotate Top ➡️");
             virtualMove("D", cubeMap);
         }
 
@@ -507,7 +513,6 @@ function startCornersSolver() {
         instructionText.style.color = "red";
     }
 }
-
 
 
 
