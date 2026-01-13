@@ -808,28 +808,38 @@ function startCornersSolver() {
 }
 
 // 2. STEP 2: SHOW IMAGES & INSTRUCTIONS
+// 2. STEP 2: SHOW IMAGES & INSTRUCTIONS
 function startCornersInstruction() {
     removeControls(); // Remove Proceed button
 
     // --- A. SHOW THE IMAGES (Hide Grid) ---
     showTriggerOverlay(); 
 
-    // --- B. SPEAK INSTRUCTIONS ---
-    let fullInstruction = "If needed, please watch the video. Strategy: Find a white sticker facing outward. Match it diagonally. Then use the Right or Left Trigger shown on screen.";
+    // --- B. DEFINE SPEECHES ---
+    let introText = "If needed, please watch the video. Here are the Trigger moves shown on screen. You can tap an image to hear how to perform that specific move.";
 
-    instructionText.innerText = "Match Diagonally & Trigger";
-    speak(fullInstruction);
+    // Note: I fixed the "Butter Farmthe" typo to "Perform the"
+    let unusualSituationsText = "Now, Unusual situations. Case 1: white stuck on bottom. If a white sticker is trapped in the bottom layer, hold the cube so that sticker is on your right. Perform one right trigger move. This moves the sticker to the top layer so you can solve it normally. Case 2: White facing up. If a white sticker is facing up, Rotate the top so the sticker is directly Above a non white corner of the white bottom. Perform the right trigger twice. Now the sticker is facing outward, and you can solve it normally.";
 
-    // --- C. SHOW CONTROLS ---
+    // Combine for the main speech loop
+    let fullSpeechSequence = introText + " ... " + unusualSituationsText;
+
+    // --- C. SPEAK INSTRUCTIONS ---
+    instructionText.innerText = "Tutorial: Triggers & Unusual Cases";
+    // Speak the full sequence automatically
+    speak(fullSpeechSequence);
+
+    // --- D. SHOW CONTROLS ---
     createManualControls(
         // LEFT: HELP (Video)
         () => {
+            // Replace with your actual video ID
             openVideo("YOUR_VIDEO_ID_HERE"); 
         },
 
-        // MIDDLE: REPEAT
+        // MIDDLE: REPEAT (Repeats the full sequence)
         () => {
-            speak(fullInstruction);
+            speak(fullSpeechSequence);
         },
 
         // RIGHT: NEXT (Hide Images & Re-Scan)
@@ -838,7 +848,6 @@ function startCornersInstruction() {
         }
     );
 }
-
 // --- RE-SCAN LOGIC ---
 function startReScanForLayer2() {
     // 1. HIDE IMAGES / RESTORE GRID
@@ -872,97 +881,83 @@ function startReScanForLayer2() {
 // --- NEW HELPER: TRIGGER OVERLAY (Fixed Layering) ---
 // Paste this at the VERY BOTTOM of js/main.js
 
+// --- NEW HELPER: TRIGGER OVERLAY (Vertical, Large, Interactive) ---
+
 function showTriggerOverlay() {
-    // 1. Check if exists
     if (document.getElementById("trigger-overlay")) return;
 
-    // 2. Create the overlay container
     let overlay = document.createElement("div");
     overlay.id = "trigger-overlay";
-    
-    // FORCE FULL SCREEN COVERAGE
-    overlay.style.position = "fixed";  // Fixed stays on screen even if you scroll
+    // Force full screen black overlay
+    overlay.style.position = "fixed";
     overlay.style.top = "0";
     overlay.style.left = "0";
-    overlay.style.width = "100vw";     // 100% of Viewport Width
-    overlay.style.height = "100vh";    // 100% of Viewport Height
-    overlay.style.backgroundColor = "#000000"; // Solid Black
-    overlay.style.zIndex = "2147483647"; // Maximum possible Z-Index (Top of everything)
-    
-    // Flexbox centering
+    overlay.style.width = "100vw";
+    overlay.style.height = "100vh";
+    overlay.style.backgroundColor = "#000000";
+    overlay.style.zIndex = "2147483647"; 
     overlay.style.display = "flex";
     overlay.style.flexDirection = "column";
     overlay.style.alignItems = "center";
-    overlay.style.justifyContent = "center";
-    
-    // 3. Title
+    overlay.style.justifyContent = "start"; // Start from top
+    overlay.style.paddingTop = "20px";
+    overlay.style.overflowY = "auto"; // Allow scrolling if screens are small
+
     let title = document.createElement("h2");
-    title.innerText = "The 2 Trigger Moves";
+    title.innerText = "Tap Image for Instructions";
     title.style.color = "white";
     title.style.marginBottom = "20px";
-    title.style.fontSize = "24px";
-    title.style.textAlign = "center";
     overlay.appendChild(title);
 
-    // 4. Image Container
     let imgContainer = document.createElement("div");
     imgContainer.style.display = "flex";
-    imgContainer.style.flexDirection = "column"; // Stack them vertically on mobile
-    imgContainer.style.gap = "20px";
+    imgContainer.style.flexDirection = "column"; // Vertical Stack
+    imgContainer.style.gap = "30px"; // Space between images
     imgContainer.style.width = "100%";
     imgContainer.style.alignItems = "center";
+    imgContainer.style.paddingBottom = "100px"; // Space for buttons at bottom
 
-    // --- LEFT TRIGGER IMAGE ---
+    // --- 1. RIGHT TRIGGER IMAGE (TOP) ---
+    let imgRight = document.createElement("img");
+    imgRight.src = "assets/right-trigger.png"; 
+    imgRight.alt = "Right Trigger (Tap to hear)";
+    imgRight.style.width = "95%";  // Much Larger
+    imgRight.style.maxWidth = "500px";
+    imgRight.style.border = "4px solid #ef4444"; // Red Border
+    imgRight.style.borderRadius = "20px";
+    imgRight.style.cursor = "pointer"; // Makes it look clickable
+    
+    // CLICK TO SPEAK RIGHT TRIGGER
+    imgRight.onclick = () => {
+        speak("For right trigger. You are going to use your right hand to perform the three move sequence, by rotating right face away from you, pulling the top face towards you with your right index finger. Then rotating the right face back towards you.");
+    };
+
+    // Error Fallback
+    imgRight.onerror = function() { this.style.display = "none"; };
+
+
+    // --- 2. LEFT TRIGGER IMAGE (BOTTOM) ---
     let imgLeft = document.createElement("img");
     imgLeft.src = "assets/left-trigger.png"; 
-    imgLeft.alt = "Left Trigger: L' U' L";
-    imgLeft.style.width = "80%";           // Big on mobile
-    imgLeft.style.maxWidth = "300px";
-    imgLeft.style.border = "3px solid #f97316"; // Orange Border
-    imgLeft.style.borderRadius = "15px";
+    imgLeft.alt = "Left Trigger (Tap to hear)";
+    imgLeft.style.width = "95%"; // Much Larger
+    imgLeft.style.maxWidth = "500px";
+    imgLeft.style.border = "4px solid #f97316"; // Orange Border
+    imgLeft.style.borderRadius = "20px";
+    imgLeft.style.cursor = "pointer"; // Makes it look clickable
+
+    // CLICK TO SPEAK LEFT TRIGGER
+    imgLeft.onclick = () => {
+        speak("To perform the left trigger, rotate the left face away from you. Pull the top face towards you with your left index finger, then rotating back the left face towards you.");
+    };
     
-    // Error Handler: If image missing, show text
-    imgLeft.onerror = function() { 
-        this.style.display = "none"; 
-        let box = document.createElement("div");
-        box.innerHTML = "<strong>Left Trigger (Orange Side)</strong><br>L' U' L";
-        box.style.color = "#f97316";
-        box.style.border = "3px solid #f97316";
-        box.style.padding = "20px";
-        box.style.borderRadius = "15px";
-        box.style.textAlign = "center";
-        box.style.width = "80%";
-        imgContainer.prepend(box);
-    };
+    // Error Fallback
+    imgLeft.onerror = function() { this.style.display = "none"; };
 
-    // --- RIGHT TRIGGER IMAGE ---
-    let imgRight = document.createElement("img");
-    imgRight.src = "assets/right-trigger.png"; // Make sure this file exists!
-    imgRight.alt = "Right Trigger: R U R'";
-    imgRight.style.width = "80%";
-    imgRight.style.maxWidth = "300px";
-    imgRight.style.border = "3px solid #ef4444"; // Red Border
-    imgRight.style.borderRadius = "15px";
-
-    // Error Handler
-    imgRight.onerror = function() { 
-        this.style.display = "none"; 
-        let box = document.createElement("div");
-        box.innerHTML = "<strong>Right Trigger (Red Side)</strong><br>R U R'";
-        box.style.color = "#ef4444";
-        box.style.border = "3px solid #ef4444";
-        box.style.padding = "20px";
-        box.style.borderRadius = "15px";
-        box.style.textAlign = "center";
-        box.style.width = "80%";
-        imgContainer.appendChild(box);
-    };
-
-    imgContainer.appendChild(imgLeft);
+    // Append in correct order (Right Top, Left Bottom)
     imgContainer.appendChild(imgRight);
+    imgContainer.appendChild(imgLeft);
     overlay.appendChild(imgContainer);
-
-    // 5. Add to body
     document.body.appendChild(overlay);
 }
 
