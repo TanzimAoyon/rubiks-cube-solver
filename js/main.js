@@ -490,36 +490,7 @@ function startCornersSolver() {
 }
 
 // 2. STEP 2: THE INSTRUCTIONS & CONTROLS
-function startCornersInstruction() {
-    // Remove the "Proceed" button
-    removeControls();
 
-    // The FULL Instruction Text
-    let fullInstruction = "If needed, please watch the video for help. Here is the strategy: Make sure Yellow center is faced Up. Look for white stickers on the Top Layer that are facing outward. Match the color beside the white sticker diagonally, to its matching center. Then, perform a Left or Right Trigger depending on which side the outward white sticker is., for right trigger You are going to use your right hand to perform the three move sequence, by rotating right face away from you, pulling the top face towards you with your right index finger. then rotating the right face back towards you.,  To perform the left trigger, rotate the left face away from you . pull the top face towards you with your left index finger, then rotating back the left face towards you. , Unusual situations - case 1: white stuck on bottom. If a white sticker is trapped in the bottom layer, hold the cube so that sticker is on your right. Perform one right trigger move. This moves the sticker to the top layer so you can solve it normally. Case 2: White facing up. If a white sticker is facing up , Rotate the top so the sticker is directly Above to a non white corner of the white bottom.  Butter Farmthe right trigger twice. Now the sticker is facing outward , and you can solve it normally";
-
-    // Speak immediately
-    instructionText.innerText = "Tutorial: Solve 4 Corners";
-    speak(fullInstruction);
-
-    // Show the 3 Buttons
-    createManualControls(
-        // LEFT: HELP (Video)
-        () => {
-            // Replace with your unlisted YouTube ID
-            openVideo("YOUR_VIDEO_ID_HERE"); 
-        },
-
-        // MIDDLE: REPEAT (The exact same instruction)
-        () => {
-            speak(fullInstruction);
-        },
-
-        // RIGHT: NEXT (Re-Scan)
-        () => {
-            startReScanForLayer2();
-        }
-    );
-}
 
 // --- RE-SCAN LOGIC ---
 function startReScanForLayer2() {
@@ -816,10 +787,10 @@ function startCornersInstruction() {
     showTriggerOverlay(); 
 
     // --- B. DEFINE SPEECHES ---
-    let introText = "If needed, please watch the video. Here are the Trigger moves shown on screen. You can tap an image to hear how to perform that specific move.";
+    let introText = "If needed, please watch the video.Here is the strategy: Make sure Yellow center is faced Up. Look for white stickers on the Top Layer, that are facing outward. Match the color beside the white sticker diagonally, to its matching center. Then, perform a Left or Right Trigger depending on which side the outward white sticker is. Here are the Trigger moves shown on screen. You can tap an image to hear how to perform that specific move.";
 
     // Note: I fixed the "Butter Farmthe" typo to "Perform the"
-    let unusualSituationsText = "Now, Unusual situations. Case 1: white stuck on bottom. If a white sticker is trapped in the bottom layer, hold the cube so that sticker is on your right. Perform one right trigger move. This moves the sticker to the top layer so you can solve it normally. Case 2: White facing up. If a white sticker is facing up, Rotate the top so the sticker is directly Above a non white corner of the white bottom. Perform the right trigger twice. Now the sticker is facing outward, and you can solve it normally.";
+    let unusualSituationsText = "Now, here are some Unusual situations. Case 1: white stuck on bottom. If a white sticker is trapped in the bottom layer, hold the cube so that sticker is on your right. Perform one right trigger move. This moves the sticker to the top layer so you can solve it normally. Case 2: White facing up. If a white sticker is facing up, Rotate the top so the sticker is directly Above a non white corner of the white bottom. Perform the right trigger twice. Now the sticker is facing outward, and you can solve it normally.";
 
     // Combine for the main speech loop
     let fullSpeechSequence = introText + " ... " + unusualSituationsText;
