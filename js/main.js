@@ -421,6 +421,81 @@ function startWhiteCross() {
     }
 }
 
+
+function startCornersSolver() {
+    // 1. Sync check
+    if (!hasFlippedForCross) {
+        let tempUp = cubeMap.up; cubeMap.up = cubeMap.down; cubeMap.down = tempUp;
+        let tempFront = cubeMap.front; cubeMap.front = cubeMap.back; cubeMap.back = tempFront;
+        hasFlippedForCross = true;
+    }
+
+    try {
+        if (typeof getCornersMove !== "function") throw new Error("Missing getCornersMove");
+        
+        let move = getCornersMove(cubeMap);
+        console.log("Corner Action:", move);
+
+        // --- VICTORY ---
+        if (move === "DONE") {
+            speak("First Layer Complete! Great job.");
+            instructionText.innerText = "Layer 1 DONE! 🏆";
+            scanBtn.innerText = "NEXT: LAYER 2";
+            return;
+        }
+
+        // --- TRIGGER INSTRUCTIONS ---
+        if (move === "Right Trigger") {
+            instructionText.innerText = "Right Trigger (R D R')";
+            speak(
+                "Match found! Perform the Right Trigger. Right Up, Pull Top, Right Down.", 
+                "Right Trigger (R D R')"
+            );
+            // Execute: R D R' (Remember D' is our code for 'Pull')
+            virtualMove("R D' R'", cubeMap); 
+        }
+        else if (move === "Left Trigger") {
+            instructionText.innerText = "Left Trigger (L' D' L)";
+            speak(
+                "Match found! Perform the Left Trigger. Left Up, Push Top, Left Down.", 
+                "Left Trigger (L' D' L)"
+            );
+            // Execute: L' D L (Remember D is 'Push' in our reversed logic)
+            virtualMove("L' D L", cubeMap);
+        }
+        else if (move === "Top Twist") {
+            instructionText.innerText = "White on Top? Do 3x Right Trigger";
+            speak(
+                "White is on top. Do the Right Trigger 3 times to fix it.", 
+                "Right Trigger x3"
+            );
+            // Standard fix for top white is roughly 3 triggers
+            virtualMove("R D' R' D' R D' R' D' R D' R'", cubeMap); 
+        }
+        else if (move === "D") {
+            instructionText.innerText = "Rotate Top (Finding Match...)";
+            speak("Rotate the top face until a side color matches its center.", "Rotate Top ➡️");
+            virtualMove("D", cubeMap);
+        }
+
+        // --- LOOP ---
+        scanBtn.innerText = "I DID IT (Next)";
+        scanBtn.onclick = startCornersSolver;
+
+    } catch (e) {
+        console.error(e);
+        instructionText.innerText = "Error: " + e.message;
+        instructionText.style.color = "red";
+    }
+}
+
+
+
+
+
+
+
+
 // Helper to convert "F" to "Front" for the text
 function getFaceName(letter) {
     if (letter === 'F') return "Front";
