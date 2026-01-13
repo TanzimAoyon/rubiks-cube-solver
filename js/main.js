@@ -1144,7 +1144,7 @@ function showMiddleLayerOverlay() {
 
     // --- IMAGE 1: MOVE RIGHT ---
     let imgRight = document.createElement("img");
-    imgRight.src = "assets/middle-right.png"; 
+    imgRight.src = "assets/middle-right.jpg"; 
     imgRight.style.width = "90%";
     imgRight.style.maxWidth = "500px";
     imgRight.style.border = "4px solid #ef4444"; // Red Border
@@ -1158,7 +1158,7 @@ function showMiddleLayerOverlay() {
 
     // --- IMAGE 2: MOVE LEFT ---
     let imgLeft = document.createElement("img");
-    imgLeft.src = "assets/middle-left.png"; 
+    imgLeft.src = "assets/middle-left.jpg"; 
     imgLeft.style.width = "90%";
     imgLeft.style.maxWidth = "500px";
     imgLeft.style.border = "4px solid #f97316"; // Orange Border
