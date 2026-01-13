@@ -781,42 +781,41 @@ function startCornersSolver() {
 // 2. STEP 2: SHOW IMAGES & INSTRUCTIONS
 // 2. STEP 2: SHOW IMAGES & INSTRUCTIONS
 function startCornersInstruction() {
-    removeControls(); // Remove Proceed button
+    removeControls(); 
 
-    // --- A. SHOW THE IMAGES (Hide Grid) ---
+    // --- A. SHOW THE IMAGES ---
     showTriggerOverlay(); 
 
     // --- B. DEFINE SPEECHES ---
-    let introText = "If needed, please watch the video.Here is the strategy: Make sure Yellow center is faced Up. Look for white stickers on the Top Layer, that are facing outward. Match the color beside the white sticker diagonally, to its matching center. Then, perform a Left or Right Trigger depending on which side the outward white sticker is. Here are the Trigger moves shown on screen. You can tap an image to hear how to perform that specific move.";
+    let introText = "If needed, please watch the video. Here is the strategy: Make sure Yellow center is faced Up. Look for white stickers on the Top Layer, that are facing outward. Match the color beside the white sticker diagonally, to its matching center. Then, perform a Left or Right Trigger depending on which side the outward white sticker is. Tap an image to hear the move.";
 
-    // Note: I fixed the "Butter Farmthe" typo to "Perform the"
-    let unusualSituationsText = "Now, here are some Unusual situations. Case 1: white stuck on bottom. If a white sticker is trapped in the bottom layer, hold the cube so that sticker is on your right. Perform one right trigger move. This moves the sticker to the top layer so you can solve it normally. Case 2: White facing up. If a white sticker is facing up, Rotate the top so the sticker is directly Above a non white corner of the white bottom. Perform the right trigger twice. Now the sticker is facing outward, and you can solve it normally.";
+    let case1Text = "Case 1: white stuck on bottom. If a white sticker is trapped in the bottom layer, hold the cube so that sticker is on your right. Perform one right trigger move. This moves the sticker to the top layer so you can solve it normally.";
+    
+    let case2Text = "Case 2: White facing up. If a white sticker is facing up, Rotate the top so the sticker is directly Above a non white corner of the white bottom. Perform the right trigger twice. Now the sticker is facing outward, and you can solve it normally.";
 
-    // Combine for the main speech loop
-    let fullSpeechSequence = introText + " ... " + unusualSituationsText;
+    // Combine for the main "Repeat" button
+    let fullSpeechSequence = introText + " ... Unusual Situations ... " + case1Text + " ... " + case2Text;
 
     // --- C. SPEAK INSTRUCTIONS ---
     instructionText.innerText = "Tutorial: Triggers & Unusual Cases";
-    // Speak the full sequence automatically
     speak(fullSpeechSequence);
 
-    // --- D. SHOW CONTROLS ---
-    createManualControls(
-        // LEFT: HELP (Video)
-        () => {
-            // Replace with your actual video ID
-            openVideo("YOUR_VIDEO_ID_HERE"); 
-        },
+    // --- D. SHOW CONTROLS (NEW LAYOUT) ---
+    createCornerControls(
+        // 1. CASE 1 ACTION
+        () => speak(case1Text),
+        
+        // 2. CASE 2 ACTION
+        () => speak(case2Text),
 
-        // MIDDLE: REPEAT (Repeats the full sequence)
-        () => {
-            speak(fullSpeechSequence);
-        },
+        // 3. HELP (Video)
+        () => openVideo("YOUR_VIDEO_ID_HERE"),
 
-        // RIGHT: NEXT (Hide Images & Re-Scan)
-        () => {
-            startReScanForLayer2();
-        }
+        // 4. REPEAT (Full Sequence)
+        () => speak(fullSpeechSequence),
+
+        // 5. NEXT (Re-Scan)
+        () => startReScanForLayer2()
     );
 }
 // --- RE-SCAN LOGIC ---
@@ -934,4 +933,73 @@ function showTriggerOverlay() {
 function removeTriggerOverlay() {
     let overlay = document.getElementById("trigger-overlay");
     if (overlay) overlay.remove();
+}
+
+
+// --- SPECIAL 2-ROW CONTROLS FOR CORNERS ---
+function createCornerControls(onCase1, onCase2, onHelp, onRepeat, onNext) {
+    removeControls();
+    if (scanBtn) scanBtn.style.display = "none";
+
+    // 1. Main Container (Fixed at bottom)
+    let container = document.createElement("div");
+    container.id = "solver-controls";
+    container.style.position = "fixed"; 
+    container.style.bottom = "10px";
+    container.style.left = "2.5%";
+    container.style.width = "95%";
+    container.style.display = "flex";
+    container.style.flexDirection = "column"; // Stack rows vertically
+    container.style.gap = "8px";
+    container.style.zIndex = "200"; // Sit on top of overlay
+    
+    // 2. TOP ROW (Case Buttons)
+    let row1 = document.createElement("div");
+    row1.style.display = "flex";
+    row1.style.gap = "8px";
+    
+    let btnCase1 = makeBtn("⚠️ Case 1: Bottom", "#9333ea", onCase1); // Purple
+    let btnCase2 = makeBtn("⚠️ Case 2: Up", "#9333ea", onCase2);     // Purple
+    
+    row1.appendChild(btnCase1);
+    row1.appendChild(btnCase2);
+
+    // 3. BOTTOM ROW (Navigation Buttons)
+    let row2 = document.createElement("div");
+    row2.style.display = "flex";
+    row2.style.gap = "8px";
+
+    let btnHelp = makeBtn("🎥 Help", "#3b82f6", onHelp);
+    let btnRepeat = makeBtn("↺ Repeat", "#f59e0b", onRepeat);
+    let btnNext = makeBtn("I Did It ➡️", "#22c55e", onNext);
+
+    row2.appendChild(btnHelp);
+    row2.appendChild(btnRepeat);
+    row2.appendChild(btnNext);
+
+    // 4. Add rows to container
+    container.appendChild(row1);
+    container.appendChild(row2);
+    
+    document.body.appendChild(container);
+}
+
+// Re-using your helper to ensure buttons look consistent
+function makeBtn(text, color, action) {
+    let btn = document.createElement("button");
+    btn.innerText = text;
+    btn.onclick = (e) => {
+        e.stopPropagation(); // Prevent clicking through
+        action();
+    };
+    btn.style.flex = "1"; 
+    btn.style.padding = "12px"; // Slightly smaller padding to fit 2 rows
+    btn.style.border = "none";
+    btn.style.borderRadius = "10px";
+    btn.style.backgroundColor = color;
+    btn.style.color = "white";
+    btn.style.fontWeight = "bold";
+    btn.style.fontSize = "14px";
+    btn.style.boxShadow = "0 4px 6px rgba(0,0,0,0.3)";
+    return btn;
 }
