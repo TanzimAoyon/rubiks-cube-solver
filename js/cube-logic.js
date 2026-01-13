@@ -1,4 +1,4 @@
-// js/cube-logic.js - SYNCED ROTATION VERSION
+// js/cube-logic.js - FIXED ROTATION DIRECTION
 
 function rotateFaceClockwise(face) {
     let old = [...face];
@@ -7,25 +7,20 @@ function rotateFaceClockwise(face) {
     face[6]=old[8]; face[7]=old[5]; face[8]=old[2];
 }
 
-function rotateFaceCounterClockwise(face) {
-    let old = [...face];
-    face[0]=old[2]; face[1]=old[5]; face[2]=old[8];
-    face[3]=old[1]; face[4]=old[4]; face[5]=old[7];
-    face[6]=old[0]; face[7]=old[3]; face[8]=old[6];
-}
-
 function virtualMove(move, cube) {
-    console.log("EXECUTING MOVE: " + move); 
-
-    // --- RECURSION FOR DOUBLE/PRIME MOVES ---
+    // RECURSION FOR COMPLEX MOVES
+    if (move.includes(" ")) { 
+        // Handles "R D R'" strings by splitting them
+        let moves = move.split(" ");
+        moves.forEach(m => virtualMove(m, cube));
+        return;
+    }
     if (move.includes("2")) {
         let base = move.replace("2", "");
         virtualMove(base, cube); virtualMove(base, cube);
         return;
     }
     if (move.includes("'")) {
-        // Prime usually means 3 rights, but let's handle it properly later if needed.
-        // For now, 3 normal moves = 1 prime move
         let base = move.replace("'", "");
         virtualMove(base, cube); virtualMove(base, cube); virtualMove(base, cube);
         return;
@@ -34,7 +29,7 @@ function virtualMove(move, cube) {
     // --- THE MOVES ---
 
     if (move === "U") { 
-        // Standard Up (White Face) - Not used often in Cross step
+        // White Face Rotation (Not used much now)
         rotateFaceClockwise(cube.up);
         let temp = [cube.front[0], cube.front[1], cube.front[2]];
         cube.front[0]=cube.right[0]; cube.front[1]=cube.right[1]; cube.front[2]=cube.right[2];
@@ -43,25 +38,33 @@ function virtualMove(move, cube) {
         cube.left[0]=temp[0];        cube.left[1]=temp[1];        cube.left[2]=temp[2];
     }
     else if (move === "D") { 
-        // *** CRITICAL FIX FOR YOU ***
-        // Standard D moves Front -> Right.
-        // BUT you are holding Yellow on Top. You rotate Clockwise (Front -> Left).
-        // So we are coding a "Visual Clockwise Top" move here.
+        // *** THE FIX *** // SIMULATING "ROTATE TOP (Yellow) CLOCKWISE"
+        // Physical Action: Pushing Front Stickers to the Left Face.
         
-        rotateFaceClockwise(cube.down); // Rotate the face stickers
-        
-        // Move Side Stickers: FRONT -> LEFT -> BACK -> RIGHT -> FRONT
+        rotateFaceClockwise(cube.down); // Rotate the Yellow Face itself
+
         let temp = [cube.front[6], cube.front[7], cube.front[8]];
         
-        // Front gets Right
+        // Front -> Left (Your Push Action)
+        // So New Left = Old Front
+        // New Back = Old Left
+        // New Right = Old Back
+        // New Front = Old Right
+        
+        // We have to work backwards to not overwrite data:
+        
+        // 1. Save Front (Temp)
+        // 2. Front gets Right
         cube.front[6]=cube.right[6]; cube.front[7]=cube.right[7]; cube.front[8]=cube.right[8];
-        // Right gets Back
+        // 3. Right gets Back
         cube.right[6]=cube.back[6];  cube.right[7]=cube.back[7];  cube.right[8]=cube.back[8];
-        // Back gets Left
+        // 4. Back gets Left
         cube.back[6]=cube.left[6];   cube.back[7]=cube.left[7];   cube.back[8]=cube.left[8];
-        // Left gets Temp (Front)
+        // 5. Left gets Temp (Old Front)
         cube.left[6]=temp[0];        cube.left[7]=temp[1];        cube.left[8]=temp[2];
     }
+    
+    // --- STANDARD SIDE MOVES ---
     else if (move === "F") {
         rotateFaceClockwise(cube.front);
         let temp = [cube.up[6], cube.up[7], cube.up[8]];
@@ -69,14 +72,6 @@ function virtualMove(move, cube) {
         cube.left[2]=cube.down[0]; cube.left[5]=cube.down[1]; cube.left[8]=cube.down[2];
         cube.down[0]=cube.right[6];cube.down[1]=cube.right[3];cube.down[2]=cube.right[0];
         cube.right[0]=temp[0];     cube.right[3]=temp[1];     cube.right[6]=temp[2];
-    }
-    else if (move === "B") {
-        rotateFaceClockwise(cube.back);
-        let temp = [cube.up[0], cube.up[1], cube.up[2]];
-        cube.up[0]=cube.right[2];  cube.up[1]=cube.right[5];  cube.up[2]=cube.right[8];
-        cube.right[2]=cube.down[8];cube.right[5]=cube.down[7];cube.right[8]=cube.down[6];
-        cube.down[6]=cube.left[0]; cube.down[7]=cube.left[3]; cube.down[8]=cube.left[6];
-        cube.left[0]=temp[2];      cube.left[3]=temp[1];      cube.left[6]=temp[0];
     }
     else if (move === "R") {
         rotateFaceClockwise(cube.right);
@@ -93,5 +88,13 @@ function virtualMove(move, cube) {
         cube.back[2]=cube.down[6]; cube.back[5]=cube.down[3]; cube.back[8]=cube.down[0];
         cube.down[0]=cube.front[0];cube.down[3]=cube.front[3];cube.down[6]=cube.front[6];
         cube.front[0]=temp[0];     cube.front[3]=temp[1];     cube.front[6]=temp[2];
+    }
+    else if (move === "B") {
+        rotateFaceClockwise(cube.back);
+        let temp = [cube.up[0], cube.up[1], cube.up[2]];
+        cube.up[0]=cube.right[2];  cube.up[1]=cube.right[5];  cube.up[2]=cube.right[8];
+        cube.right[2]=cube.down[8];cube.right[5]=cube.down[7];cube.right[8]=cube.down[6];
+        cube.down[6]=cube.left[0]; cube.down[7]=cube.left[3]; cube.down[8]=cube.left[6];
+        cube.left[0]=temp[2];      cube.left[3]=temp[1];      cube.left[6]=temp[0];
     }
 }
