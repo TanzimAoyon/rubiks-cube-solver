@@ -1015,3 +1015,198 @@ function makeBtn(text, color, action) {
     btn.style.boxShadow = "0 4px 6px rgba(0,0,0,0.3)";
     return btn;
 }
+
+
+
+// --- PHASE 3: MIDDLE LAYER (EDGES) ---
+
+function startMiddleLayerSolver() {
+    // 1. Cleanup Previous Step
+    if (scanBtn) scanBtn.style.display = "none";
+    removeControls(); 
+    removeTriggerOverlay(); 
+
+    // 2. Intro Speech
+    instructionText.innerText = "Phase 3: Middle Layer";
+    speak("Phase 3. Time to solve the Middle Layer edges.");
+
+    // 3. Show "PROCEED" Button
+    let controlsDiv = document.createElement("div");
+    controlsDiv.id = "solver-controls"; 
+    controlsDiv.style.position = "fixed"; 
+    controlsDiv.style.bottom = "20px";
+    controlsDiv.style.width = "100%";
+    controlsDiv.style.display = "flex";
+    controlsDiv.style.justifyContent = "center";
+    controlsDiv.style.zIndex = "9999"; 
+
+    let btnProceed = document.createElement("button");
+    btnProceed.innerText = "PROCEED ➡️";
+    btnProceed.style.padding = "15px 40px";
+    btnProceed.style.fontSize = "18px";
+    btnProceed.style.fontWeight = "bold";
+    btnProceed.style.backgroundColor = "#2563eb"; // Blue
+    btnProceed.style.color = "white";
+    btnProceed.style.borderRadius = "50px";
+    btnProceed.style.border = "none";
+    btnProceed.style.boxShadow = "0 4px 10px rgba(0,0,0,0.3)";
+    
+    // ACTION: Go to Instructions
+    btnProceed.onclick = startMiddleLayerInstruction;
+
+    controlsDiv.appendChild(btnProceed);
+    document.body.appendChild(controlsDiv);
+}
+
+
+function startMiddleLayerInstruction() {
+    removeControls(); 
+
+    // --- A. SHOW MIDDLE LAYER OVERLAY ---
+    showMiddleLayerOverlay(); 
+
+    // --- B. DEFINE SPEECHES ---
+    let introText = "Strategy: Find an edge on the Top Layer that has NO Yellow colors. Match its front color to its center to make a 'T' shape. Look at the top color of that piece. You need to push it AWAY from that color's side. Tap the images to hear the Right vs Left moves.";
+
+    let case1Text = "Case 1: Edge is Stuck. If an edge piece is stuck in the middle layer but in the wrong spot, hold it on the Right side and perform the Right Move once. This pops it out to the top layer so you can solve it.";
+    
+    let case2Text = "Case 2: No Edges on Top. If all pieces on the top layer have yellow on them, it means your middle edges are stuck in the second layer. Use Case 1 to pop them out.";
+
+    let fullSpeech = introText + " ... " + case1Text + " ... " + case2Text;
+
+    // --- C. SPEAK ---
+    instructionText.innerText = "Tutorial: Middle Layer Edges";
+    speak(fullSpeech);
+
+    // --- D. SHOW 5-BUTTON CONTROLS (Re-using your existing helper) ---
+    createCornerControls(
+        // 1. CASE 1: Stuck
+        () => speak(case1Text),
+        
+        // 2. CASE 2: No Edges
+        () => speak(case2Text),
+
+        // 3. HELP (Video)
+        () => openVideo("YOUR_VIDEO_ID_HERE"),
+
+        // 4. REPEAT
+        () => speak(fullSpeech),
+
+        // 5. NEXT -> Start Layer 4 (Top Cross)
+        () => startReScanForLayer3()
+    );
+}
+
+
+
+
+
+function showMiddleLayerOverlay() {
+    // Unique ID for this overlay so it doesn't conflict
+    if (document.getElementById("middle-overlay")) return;
+
+    let overlay = document.createElement("div");
+    overlay.id = "middle-overlay";
+    
+    // High Z-Index to cover camera, but lower than buttons (100)
+    overlay.style.position = "fixed";
+    overlay.style.top = "0";
+    overlay.style.left = "0";
+    overlay.style.width = "100vw";
+    overlay.style.height = "100vh";
+    overlay.style.backgroundColor = "#000000"; 
+    overlay.style.zIndex = "100"; 
+    
+    overlay.style.display = "flex";
+    overlay.style.flexDirection = "column";
+    overlay.style.alignItems = "center";
+    overlay.style.justifyContent = "start"; 
+    overlay.style.paddingTop = "80px";
+    overlay.style.overflowY = "auto"; 
+    overlay.style.paddingBottom = "150px"; 
+
+    // Text Instruction
+    let instruction = document.createElement("p");
+    instruction.innerText = "Match the 'T' shape. Push AWAY from the top color.";
+    instruction.style.color = "#ffffff";
+    instruction.style.fontSize = "18px";
+    instruction.style.textAlign = "center";
+    instruction.style.marginBottom = "20px";
+    instruction.style.padding = "0 20px";
+    overlay.appendChild(instruction);
+
+    let imgContainer = document.createElement("div");
+    imgContainer.style.display = "flex";
+    imgContainer.style.flexDirection = "column"; 
+    imgContainer.style.gap = "40px"; 
+    imgContainer.style.width = "100%";
+    imgContainer.style.alignItems = "center";
+
+    // --- IMAGE 1: MOVE RIGHT ---
+    let imgRight = document.createElement("img");
+    imgRight.src = "assets/middle-right.png"; 
+    imgRight.style.width = "90%";
+    imgRight.style.maxWidth = "500px";
+    imgRight.style.border = "4px solid #ef4444"; // Red Border
+    imgRight.style.borderRadius = "20px";
+    imgRight.style.cursor = "pointer";
+    
+    imgRight.onclick = (e) => {
+        e.stopPropagation();
+        speak("To Move Right: Push the Top to the Left (Away). Then perform the Right Trigger. Rotate the cube to face the white sticker. Then perform the Left Trigger to fix it.");
+    };
+
+    // --- IMAGE 2: MOVE LEFT ---
+    let imgLeft = document.createElement("img");
+    imgLeft.src = "assets/middle-left.png"; 
+    imgLeft.style.width = "90%";
+    imgLeft.style.maxWidth = "500px";
+    imgLeft.style.border = "4px solid #f97316"; // Orange Border
+    imgLeft.style.borderRadius = "20px";
+    imgLeft.style.cursor = "pointer";
+
+    imgLeft.onclick = (e) => {
+        e.stopPropagation();
+        speak("To Move Left: Push the Top to the Right (Away). Then perform the Left Trigger. Rotate the cube to face the white sticker. Then perform the Right Trigger to fix it.");
+    };
+
+    imgContainer.appendChild(imgRight);
+    imgContainer.appendChild(imgLeft);
+    overlay.appendChild(imgContainer);
+    document.body.appendChild(overlay);
+}
+
+// Helper to remove this specific overlay
+function removeMiddleLayerOverlay() {
+    let overlay = document.getElementById("middle-overlay");
+    if (overlay) overlay.remove();
+}
+
+
+
+
+function startReScanForLayer3() {
+    // 1. Clean UI
+    removeMiddleLayerOverlay();
+    removeControls();
+    
+    // 2. Set Flags (We will use a new flag for Phase 3)
+    // Note: We need to define this flag at the top of main.js later
+    // isScanningForLayer3 = true; 
+
+    // 3. Setup Scanner Button
+    if (scanBtn) {
+        scanBtn.style.display = "block";
+        scanBtn.innerText = "SCAN FOR LAST LAYER";
+        scanBtn.className = "w-full bg-yellow-500 text-black font-bold py-4 rounded-xl shadow-lg";
+        
+        // Use a placeholder alert until we build the next step
+        scanBtn.onclick = () => {
+             alert("Scanning logic for Last Layer coming next!");
+             // Later we will link this to scanFace()
+        };
+    }
+
+    instructionText.innerText = "Layer 2 Done! Prepare to scan again.";
+    speak("Great job! You have solved the first two layers. Now we need to scan again to solve the final Yellow layer.");
+}
