@@ -442,88 +442,97 @@ function startWhiteCross() {
 
 // Global flag to track if we already gave the intro speech
 // Global flag for the strategy intro
+// Global flag for the strategy intro
 let cornersIntroPlayed = false;
 
 function startCornersSolver() {
-    // 1. NO FLIP LOGIC (Raw Data)
+    console.log("Corners Solver Started...");
+
+    // 1. Check Brain
     try {
         if (typeof getCornersMove !== "function") throw new Error("Missing getCornersMove");
         
         let move = getCornersMove(cubeMap);
-        console.log("Corner Action:", move);
+        console.log("Proposed Move:", move);
 
-        // --- VICTORY ---
+        // --- VICTORY CHECK ---
         if (move === "DONE") {
             speak("First Layer Complete! Great job.");
             instructionText.innerText = "Layer 1 DONE! 🏆";
             
-            // Restore single button for next layer
+            // Restore the main button for the next phase
             removeControls(); 
             scanBtn.style.display = "block"; 
             scanBtn.innerText = "NEXT: LAYER 2";
             return;
         }
 
-        // --- STRATEGY EXPLANATION (Plays Once) ---
+        // --- INTRO EXPLANATION (One Time) ---
         if (!cornersIntroPlayed) {
             cornersIntroPlayed = true; 
             speak(
-                "Now we look for white corner stickers. Find a white corner, look at its side color, and rotate the Yellow Top until that color matches its center diagonally. Then, we perform a trigger move based on which side the white sticker is facing.",
+                "Strategy time. We look for white corner stickers. Find one, match its side color diagonally to a center, then perform a trigger.",
                 "Strategy: Match & Trigger"
             );
             
-            // Show the 3 buttons immediately for the intro too
+            // Show buttons for the intro too
             updateControls(
-                // Button 1: Repeat
-                () => speak("Find a white corner, match its side color diagonally, then trigger.", "Strategy: Match & Trigger"),
-                // Button 2: Video
+                // Repeat
+                () => speak("Find a white corner, match side color diagonally, then trigger.", "Strategy: Match & Trigger"),
+                // Video
                 () => showVideoHelp("intro"),
-                // Button 3: Next
+                // Next (Just restart the function to find the first real move)
                 () => startCornersSolver()
             );
-            return;
+            return; // STOP HERE!
         }
 
-        // --- DEFINE THE TEXT & AUDIO FOR THE CURRENT MOVE ---
+        // --- PREPARE THE MOVE (Do not execute yet!) ---
         let audioMsg = "";
         let textMsg = "";
-        let moveCode = ""; // The code to execute on "Next"
+        let moveCode = ""; 
 
         if (move === "Right Trigger") {
             textMsg = "Match on RED (Left)";
-            audioMsg = "Match found on the Red side! Lift Red, Pull Top, Down Red.";
+            audioMsg = "Match found on Red! Lift Red, Pull Top, Down Red.";
             moveCode = "R D' R'";
         }
         else if (move === "Left Trigger") {
             textMsg = "Match on ORANGE (Right)";
-            audioMsg = "Match found on the Orange side! Lift Orange, Push Top, Down Orange.";
+            audioMsg = "Match found on Orange! Lift Orange, Push Top, Down Orange.";
             moveCode = "L D L'";
         }
         else if (move === "Top Twist") {
             textMsg = "White on Top? Twist it.";
-            audioMsg = "The white sticker is facing up. Perform the Red Trigger three times.";
+            audioMsg = "White is on top. Do the Red Trigger three times.";
             moveCode = "R D' R' R D' R' R D' R'";
         }
         else if (move === "D") {
             textMsg = "Rotate Top ➡️ (Match Side)";
-            audioMsg = "Rotate the Yellow Top face. Look at the non-white side sticker. Stop when it diagonally matches its center color.";
+            audioMsg = "Rotate the Yellow Top. Look for a non-white side sticker matching its center.";
             moveCode = "D";
         }
 
-        // 1. Speak instructions immediately
+        // --- EXECUTION PHASE ---
+        
+        // 1. Speak/Show NOW
         instructionText.innerText = textMsg;
         speak(audioMsg);
 
-        // 2. Show the 3 Buttons
+        // 2. STOP everything and show buttons.
+        // We pass the "Next" logic as a function, but we DO NOT run it yet.
         updateControls(
-            // Repeat Action
+            // REPEAT Action
             () => speak(audioMsg), 
-            // Video Action
+            
+            // VIDEO Action
             () => showVideoHelp(move),
-            // Next Action (Execute & Loop)
+            
+            // NEXT Action (The only way to advance)
             () => {
-                virtualMove(moveCode, cubeMap);
-                startCornersSolver();
+                console.log("Executing:", moveCode);
+                virtualMove(moveCode, cubeMap); // Update Memory
+                startCornersSolver(); // Loop again
             }
         );
 
@@ -532,6 +541,77 @@ function startCornersSolver() {
         instructionText.innerText = "Error: " + e.message;
         instructionText.style.color = "red";
     }
+}
+
+// --- CONTROLS MANAGER (The 3 Buttons) ---
+
+function updateControls(onRepeat, onVideo, onNext) {
+    // 1. HIDE the old big button (Critical!)
+    if (scanBtn) scanBtn.style.display = "none";
+
+    // 2. Find or Create the Container
+    let controlsDiv = document.getElementById("solver-controls");
+    
+    // Safety check: if container missing, append it after instruction text
+    if (!controlsDiv) {
+        controlsDiv = document.createElement("div");
+        controlsDiv.id = "solver-controls";
+        controlsDiv.style.display = "flex";
+        controlsDiv.style.gap = "10px";
+        controlsDiv.style.marginTop = "15px";
+        controlsDiv.style.justifyContent = "center";
+        controlsDiv.style.width = "100%";
+        
+        // Append to the parent of instructionText (usually the main container)
+        instructionText.parentNode.insertBefore(controlsDiv, instructionText.nextSibling);
+    }
+
+    // 3. Clear old buttons
+    controlsDiv.innerHTML = "";
+
+    // 4. Create the 3 Buttons
+    let btnRepeat = createButton("↺ Repeat", "#f59e0b", onRepeat); // Yellow/Orange
+    let btnVideo  = createButton("🎥 Help", "#3b82f6", onVideo);   // Blue
+    let btnNext   = createButton("✅ Next", "#22c55e", onNext);    // Green
+
+    // 5. Add them
+    controlsDiv.appendChild(btnRepeat);
+    controlsDiv.appendChild(btnVideo);
+    controlsDiv.appendChild(btnNext);
+}
+
+function createButton(text, color, onClick) {
+    let btn = document.createElement("button");
+    btn.innerText = text;
+    
+    // STYLE
+    btn.style.flex = "1"; // Equal width
+    btn.style.padding = "15px";
+    btn.style.border = "none";
+    btn.style.borderRadius = "12px";
+    btn.style.backgroundColor = color;
+    btn.style.color = "white";
+    btn.style.fontWeight = "bold";
+    btn.style.fontSize = "16px";
+    btn.style.cursor = "pointer";
+    btn.style.boxShadow = "0 4px 6px rgba(0,0,0,0.1)";
+
+    // CLICK HANDLER
+    btn.onclick = (e) => {
+        // Optional: specific animation or sound
+        onClick();
+    };
+    
+    return btn;
+}
+
+function removeControls() {
+    let controlsDiv = document.getElementById("solver-controls");
+    if (controlsDiv) controlsDiv.remove();
+}
+
+function showVideoHelp(moveType) {
+    alert("Video Help: " + moveType + "\n(You can add a video popup here later!)");
 }
 
 // --- HELPER FUNCTIONS FOR THE BUTTONS ---
