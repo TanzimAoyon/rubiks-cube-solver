@@ -868,75 +868,93 @@ function startReScanForLayer2() {
 
 // --- NEW HELPER: TRIGGER OVERLAY ---
 
+
+// --- NEW HELPER: TRIGGER OVERLAY (Fixed Layering) ---
+// Paste this at the VERY BOTTOM of js/main.js
+
 function showTriggerOverlay() {
-    // Check if exists
+    // 1. Check if exists
     if (document.getElementById("trigger-overlay")) return;
 
-    // Create the overlay container
+    // 2. Create the overlay container
     let overlay = document.createElement("div");
     overlay.id = "trigger-overlay";
-    overlay.style.position = "absolute"; // Covers the camera area
+    
+    // FORCE FULL SCREEN COVERAGE
+    overlay.style.position = "fixed";  // Fixed stays on screen even if you scroll
     overlay.style.top = "0";
     overlay.style.left = "0";
-    overlay.style.width = "100%";
-    overlay.style.height = "100vh"; // Full height
-    overlay.style.backgroundColor = "#111827"; // Dark background to hide camera
-    overlay.style.zIndex = "50"; // Above camera, below buttons
+    overlay.style.width = "100vw";     // 100% of Viewport Width
+    overlay.style.height = "100vh";    // 100% of Viewport Height
+    overlay.style.backgroundColor = "#000000"; // Solid Black
+    overlay.style.zIndex = "2147483647"; // Maximum possible Z-Index (Top of everything)
+    
+    // Flexbox centering
     overlay.style.display = "flex";
     overlay.style.flexDirection = "column";
     overlay.style.alignItems = "center";
     overlay.style.justifyContent = "center";
-    overlay.style.gap = "20px";
     
-    // Title
+    // 3. Title
     let title = document.createElement("h2");
     title.innerText = "The 2 Trigger Moves";
     title.style.color = "white";
-    title.style.marginBottom = "10px";
+    title.style.marginBottom = "20px";
+    title.style.fontSize = "24px";
+    title.style.textAlign = "center";
     overlay.appendChild(title);
 
-    // Image Container (Side by Side)
+    // 4. Image Container
     let imgContainer = document.createElement("div");
     imgContainer.style.display = "flex";
-    imgContainer.style.gap = "10px";
+    imgContainer.style.flexDirection = "column"; // Stack them vertically on mobile
+    imgContainer.style.gap = "20px";
     imgContainer.style.width = "100%";
-    imgContainer.style.justifyContent = "center";
+    imgContainer.style.alignItems = "center";
 
-    // IMAGE 1: LEFT TRIGGER
+    // --- LEFT TRIGGER IMAGE ---
     let imgLeft = document.createElement("img");
-    imgLeft.src = "assets/left-trigger.png"; // <--- PUT YOUR IMAGE HERE
-    imgLeft.alt = "Left Trigger";
-    imgLeft.style.width = "45%";
-    imgLeft.style.maxWidth = "200px";
-    imgLeft.style.border = "2px solid orange";
-    imgLeft.style.borderRadius = "10px";
-    // Fallback if image missing
+    imgLeft.src = "assets/left-trigger.png"; 
+    imgLeft.alt = "Left Trigger: L' U' L";
+    imgLeft.style.width = "80%";           // Big on mobile
+    imgLeft.style.maxWidth = "300px";
+    imgLeft.style.border = "3px solid #f97316"; // Orange Border
+    imgLeft.style.borderRadius = "15px";
+    
+    // Error Handler: If image missing, show text
     imgLeft.onerror = function() { 
         this.style.display = "none"; 
         let box = document.createElement("div");
-        box.innerText = "Left Trigger\n(L' U' L)";
-        box.style.color = "orange";
-        box.style.border = "2px solid orange";
+        box.innerHTML = "<strong>Left Trigger (Orange Side)</strong><br>L' U' L";
+        box.style.color = "#f97316";
+        box.style.border = "3px solid #f97316";
         box.style.padding = "20px";
+        box.style.borderRadius = "15px";
+        box.style.textAlign = "center";
+        box.style.width = "80%";
         imgContainer.prepend(box);
     };
 
-    // IMAGE 2: RIGHT TRIGGER
+    // --- RIGHT TRIGGER IMAGE ---
     let imgRight = document.createElement("img");
-    imgRight.src = "assets/right-trigger.png"; // <--- PUT YOUR IMAGE HERE
-    imgRight.alt = "Right Trigger";
-    imgRight.style.width = "45%";
-    imgRight.style.maxWidth = "200px";
-    imgRight.style.border = "2px solid red";
-    imgRight.style.borderRadius = "10px";
-    // Fallback
+    imgRight.src = "assets/right-trigger.png"; // Make sure this file exists!
+    imgRight.alt = "Right Trigger: R U R'";
+    imgRight.style.width = "80%";
+    imgRight.style.maxWidth = "300px";
+    imgRight.style.border = "3px solid #ef4444"; // Red Border
+    imgRight.style.borderRadius = "15px";
+
+    // Error Handler
     imgRight.onerror = function() { 
         this.style.display = "none"; 
         let box = document.createElement("div");
-        box.innerText = "Right Trigger\n(R U R')";
-        box.style.color = "red";
-        box.style.border = "2px solid red";
+        box.innerHTML = "<strong>Right Trigger (Red Side)</strong><br>R U R'";
+        box.style.color = "#ef4444";
+        box.style.border = "3px solid #ef4444";
         box.style.padding = "20px";
+        box.style.borderRadius = "15px";
+        box.style.textAlign = "center";
+        box.style.width = "80%";
         imgContainer.appendChild(box);
     };
 
@@ -944,7 +962,7 @@ function showTriggerOverlay() {
     imgContainer.appendChild(imgRight);
     overlay.appendChild(imgContainer);
 
-    // Add to body
+    // 5. Add to body
     document.body.appendChild(overlay);
 }
 
