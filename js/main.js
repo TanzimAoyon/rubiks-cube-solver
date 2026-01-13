@@ -445,102 +445,80 @@ function startWhiteCross() {
 // Global flag for the strategy intro
 let cornersIntroPlayed = false;
 
+// --- CORNERS TUTORIAL MODE (No Math) ---
+
 function startCornersSolver() {
-    console.log("Corners Solver Started...");
+    // 1. Clear previous UI
+    if (scanBtn) scanBtn.style.display = "none";
+    removeControls(); // Clear old buttons if any
 
-    // 1. Check Brain
-    try {
-        if (typeof getCornersMove !== "function") throw new Error("Missing getCornersMove");
-        
-        let move = getCornersMove(cubeMap);
-        console.log("Proposed Move:", move);
+    // 2. The Instruction Text
+    let introText = "Time to solve the corners! Watch the video to learn how to match the white stickers diagonally and use the Trigger moves. Solve all 4 corners, then click Next.";
+    
+    // 3. Speak & Show
+    instructionText.innerText = "Tutorial: Solve 4 Corners";
+    speak(introText);
 
-        // --- VICTORY CHECK ---
-        if (move === "DONE") {
-            speak("First Layer Complete! Great job.");
-            instructionText.innerText = "Layer 1 DONE! 🏆";
-            
-            // Restore the main button for the next phase
-            removeControls(); 
-            scanBtn.style.display = "block"; 
-            scanBtn.innerText = "NEXT: LAYER 2";
-            return;
+    // 4. Show the 3 Buttons (Left: Help, Middle: Repeat, Right: Next)
+    createManualControls(
+        // LEFT BUTTON: HELP (Video)
+        () => {
+            // REPLACE 'YOUR_VIDEO_ID' with your actual YouTube Video ID
+            // Example: if link is https://youtu.be/dQw4w9WgXcQ, ID is dQw4w9WgXcQ
+            openVideo("dQw4w9WgXcQ"); 
+        },
+
+        // MIDDLE BUTTON: REPEAT
+        () => {
+            speak(introText);
+        },
+
+        // RIGHT BUTTON: I DID IT (Trigger Re-Scan)
+        () => {
+            startReScanForLayer2();
         }
+    );
+}
 
-        // --- INTRO EXPLANATION (One Time) ---
-        if (!cornersIntroPlayed) {
-            cornersIntroPlayed = true; 
-            speak(
-                "Strategy time. We look for white corner stickers. Find one, match its side color diagonally to a center, then perform a trigger.",
-                "Strategy: Match & Trigger"
-            );
-            
-            // Show buttons for the intro too
-            updateControls(
-                // Repeat
-                () => speak("Find a white corner, match side color diagonally, then trigger.", "Strategy: Match & Trigger"),
-                // Video
-                () => showVideoHelp("intro"),
-                // Next (Just restart the function to find the first real move)
-                () => startCornersSolver()
-            );
-            return; // STOP HERE!
-        }
-
-        // --- PREPARE THE MOVE (Do not execute yet!) ---
-        let audioMsg = "";
-        let textMsg = "";
-        let moveCode = ""; 
-
-        if (move === "Right Trigger") {
-            textMsg = "Match on RED (Left)";
-            audioMsg = "Match found on Red! Lift Red, Pull Top, Down Red.";
-            moveCode = "R D' R'";
-        }
-        else if (move === "Left Trigger") {
-            textMsg = "Match on ORANGE (Right)";
-            audioMsg = "Match found on Orange! Lift Orange, Push Top, Down Orange.";
-            moveCode = "L D L'";
-        }
-        else if (move === "Top Twist") {
-            textMsg = "White on Top? Twist it.";
-            audioMsg = "White is on top. Do the Red Trigger three times.";
-            moveCode = "R D' R' R D' R' R D' R'";
-        }
-        else if (move === "D") {
-            textMsg = "Rotate Top ➡️ (Match Side)";
-            audioMsg = "Rotate the Yellow Top. Look for a non-white side sticker matching its center.";
-            moveCode = "D";
-        }
-
-        // --- EXECUTION PHASE ---
-        
-        // 1. Speak/Show NOW
-        instructionText.innerText = textMsg;
-        speak(audioMsg);
-
-        // 2. STOP everything and show buttons.
-        // We pass the "Next" logic as a function, but we DO NOT run it yet.
-        updateControls(
-            // REPEAT Action
-            () => speak(audioMsg), 
-            
-            // VIDEO Action
-            () => showVideoHelp(move),
-            
-            // NEXT Action (The only way to advance)
-            () => {
-                console.log("Executing:", moveCode);
-                virtualMove(moveCode, cubeMap); // Update Memory
-                startCornersSolver(); // Loop again
-            }
-        );
-
-    } catch (e) {
-        console.error(e);
-        instructionText.innerText = "Error: " + e.message;
-        instructionText.style.color = "red";
+// --- RE-SCAN LOGIC ---
+function startReScanForLayer2() {
+    // 1. Cleanup UI
+    removeControls();
+    if (scanBtn) {
+        scanBtn.style.display = "block";
+        scanBtn.innerText = "SCAN FRONT (GREEN)";
+        scanBtn.className = "w-full bg-yellow-500 text-black font-bold py-4 rounded-xl shadow-lg";
     }
+
+    // 2. Reset Scanning Memory
+    currentSideIndex = 0;
+    scanOrder.forEach(side => cubeMap[side] = []);
+
+    // 3. Prompt User
+    instructionText.innerText = "Great! Let's check your work. Show Green Front.";
+    speak("Great job. Now I need to scan the cube again to help you with the next layer. Show me the Green Front.");
+
+    // 4. Link Button to Scanner
+    scanBtn.onclick = scanFace; 
+}
+
+// --- VIDEO PLAYER LOGIC ---
+function openVideo(videoId) {
+    let modal = document.getElementById("video-modal");
+    let iframe = document.getElementById("yt-player");
+    
+    // Construct Embed URL
+    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+    modal.style.display = "flex";
+}
+
+function closeVideo() {
+    let modal = document.getElementById("video-modal");
+    let iframe = document.getElementById("yt-player");
+    
+    // Stop video by clearing source
+    iframe.src = "";
+    modal.style.display = "none";
 }
 
 // --- CONTROLS MANAGER (The 3 Buttons) ---
@@ -687,7 +665,61 @@ function getFaceName(letter) {
     return "Side";
 }
 
+// --- 3-BUTTON MANUAL UI ---
+function createManualControls(onHelp, onRepeat, onNext) {
+    // 1. Cleanup
+    removeControls();
+    if (scanBtn) scanBtn.style.display = "none";
 
+    // 2. Create Container
+    let container = document.createElement("div");
+    container.id = "solver-controls";
+    container.style.position = "fixed"; 
+    container.style.bottom = "20px";
+    container.style.left = "5%";
+    container.style.width = "90%";
+    container.style.display = "flex";
+    container.style.gap = "10px";
+    container.style.zIndex = "9999"; 
+    
+    // 3. LEFT BUTTON: HELP (Video) - Blue
+    let btnHelp = makeBtn("🎥 Help", "#3b82f6", onHelp);
+
+    // 4. MIDDLE BUTTON: REPEAT - Orange/Yellow
+    let btnRepeat = makeBtn("↺ Repeat", "#f59e0b", onRepeat);
+    
+    // 5. RIGHT BUTTON: I DID IT (Next) - Green
+    let btnNext = makeBtn("I Did It (Next) ➡️", "#22c55e", onNext);
+
+    // Add in correct order
+    container.appendChild(btnHelp);
+    container.appendChild(btnRepeat);
+    container.appendChild(btnNext);
+    
+    document.body.appendChild(container);
+}
+
+// Helper to style buttons
+function makeBtn(text, color, action) {
+    let btn = document.createElement("button");
+    btn.innerText = text;
+    btn.onclick = action;
+    btn.style.flex = "1"; // All buttons equal width
+    btn.style.padding = "15px";
+    btn.style.border = "none";
+    btn.style.borderRadius = "10px";
+    btn.style.backgroundColor = color;
+    btn.style.color = "white";
+    btn.style.fontWeight = "bold";
+    btn.style.fontSize = "14px"; // Slightly smaller text to fit
+    btn.style.boxShadow = "0 4px 6px rgba(0,0,0,0.3)";
+    return btn;
+}
+
+function removeControls() {
+    let old = document.getElementById("solver-controls");
+    if (old) old.remove();
+}
 
 
 
