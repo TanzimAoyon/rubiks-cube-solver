@@ -495,7 +495,7 @@ function startCornersInstruction() {
     removeControls();
 
     // The FULL Instruction Text
-    let fullInstruction = "If needed, please watch the video for help. Here is the strategy: Make sure Yellow center is faced Up. Look for white stickers on the Top Layer that are facing outward. Match the color beside the white sticker diagonally to its matching center. Then, perform a Left or Right Trigger depending on which side the outward white sticker is., for right trigger You are going to use your right hand to perform the three move sequence by rotating right phase away from you pulling the top face towards you with your right index finger then rotating the right face back towards you.,  To perform the left triggerrotate the left face away from you pulling the top face towards you with your left index finger then rotatingback the left face towards you. , Unusual situations - case 1: white stuck on bottom. If a white sticker is trapped in the bottom layer, hold the cube so that sticker is on your right. Perform one right trigger move. This moves the sticker to the top layer so you can solve it normally. Case 2: White facing up. If a white sticker is facing up , Rotate the top so the sticker is directly Above to a non white corner of the white bottom.  Butter Farmthe right trigger twice. Now the sticker is facing outward , and you can solve it normally";
+    let fullInstruction = "If needed, please watch the video for help. Here is the strategy: Make sure Yellow center is faced Up. Look for white stickers on the Top Layer that are facing outward. Match the color beside the white sticker diagonally, to its matching center. Then, perform a Left or Right Trigger depending on which side the outward white sticker is., for right trigger You are going to use your right hand to perform the three move sequence, by rotating right face away from you, pulling the top face towards you with your right index finger. then rotating the right face back towards you.,  To perform the left trigger, rotate the left face away from you . pull the top face towards you with your left index finger, then rotating back the left face towards you. , Unusual situations - case 1: white stuck on bottom. If a white sticker is trapped in the bottom layer, hold the cube so that sticker is on your right. Perform one right trigger move. This moves the sticker to the top layer so you can solve it normally. Case 2: White facing up. If a white sticker is facing up , Rotate the top so the sticker is directly Above to a non white corner of the white bottom.  Butter Farmthe right trigger twice. Now the sticker is facing outward , and you can solve it normally";
 
     // Speak immediately
     instructionText.innerText = "Tutorial: Solve 4 Corners";
@@ -765,3 +765,190 @@ function removeControls() {
 
 
 
+// --- CORNERS TUTORIAL MODE (With Image Overlay) ---
+
+function startCornersSolver() {
+    // 1. STEP 1: THE INTRO "CHAPTER BREAK"
+    
+    // Cleanup UI
+    if (scanBtn) scanBtn.style.display = "none";
+    removeControls(); 
+    removeTriggerOverlay(); // Safety clear
+
+    // Speak & Show "Time to solve corners"
+    instructionText.innerText = "Phase 2: Corners";
+    speak("Time to solve corners.");
+
+    // Show "PROCEED" Button
+    let controlsDiv = document.createElement("div");
+    controlsDiv.id = "solver-controls"; 
+    controlsDiv.style.position = "fixed"; 
+    controlsDiv.style.bottom = "20px";
+    controlsDiv.style.width = "100%";
+    controlsDiv.style.display = "flex";
+    controlsDiv.style.justifyContent = "center";
+    controlsDiv.style.zIndex = "9999"; 
+
+    let btnProceed = document.createElement("button");
+    btnProceed.innerText = "PROCEED ➡️";
+    btnProceed.style.padding = "15px 40px";
+    btnProceed.style.fontSize = "18px";
+    btnProceed.style.fontWeight = "bold";
+    btnProceed.style.backgroundColor = "#2563eb"; // Blue
+    btnProceed.style.color = "white";
+    btnProceed.style.borderRadius = "50px";
+    btnProceed.style.border = "none";
+    btnProceed.style.boxShadow = "0 4px 10px rgba(0,0,0,0.3)";
+    
+    // CLICK PROCEED -> GO TO STEP 2
+    btnProceed.onclick = startCornersInstruction;
+
+    controlsDiv.appendChild(btnProceed);
+    document.body.appendChild(controlsDiv);
+}
+
+// 2. STEP 2: SHOW IMAGES & INSTRUCTIONS
+function startCornersInstruction() {
+    removeControls(); // Remove Proceed button
+
+    // --- A. SHOW THE IMAGES (Hide Grid) ---
+    showTriggerOverlay(); 
+
+    // --- B. SPEAK INSTRUCTIONS ---
+    let fullInstruction = "If needed, please watch the video. Strategy: Find a white sticker facing outward. Match it diagonally. Then use the Right or Left Trigger shown on screen.";
+
+    instructionText.innerText = "Match Diagonally & Trigger";
+    speak(fullInstruction);
+
+    // --- C. SHOW CONTROLS ---
+    createManualControls(
+        // LEFT: HELP (Video)
+        () => {
+            openVideo("YOUR_VIDEO_ID_HERE"); 
+        },
+
+        // MIDDLE: REPEAT
+        () => {
+            speak(fullInstruction);
+        },
+
+        // RIGHT: NEXT (Hide Images & Re-Scan)
+        () => {
+            startReScanForLayer2();
+        }
+    );
+}
+
+// --- RE-SCAN LOGIC ---
+function startReScanForLayer2() {
+    // 1. HIDE IMAGES / RESTORE GRID
+    removeTriggerOverlay();
+    
+    // 2. Cleanup UI
+    removeControls();
+    
+    if (scanBtn) {
+        scanBtn.style.display = "block";
+        scanBtn.innerText = "SCAN FRONT (GREEN)";
+        scanBtn.className = "w-full bg-yellow-500 text-black font-bold py-4 rounded-xl shadow-lg";
+    }
+
+    // 3. Reset Memory
+    currentSideIndex = 0;
+    scanOrder.forEach(side => cubeMap[side] = []);
+
+    // 4. Prompt User
+    instructionText.innerText = "Great! Let's check your work. Show Green Front.";
+    speak("Great job. Now I need to scan the cube again to help you with the next layer. Show me the Green Front.");
+
+    // 5. Link Button
+    scanBtn.onclick = scanFace; 
+}
+
+
+// --- NEW HELPER: TRIGGER OVERLAY ---
+
+function showTriggerOverlay() {
+    // Check if exists
+    if (document.getElementById("trigger-overlay")) return;
+
+    // Create the overlay container
+    let overlay = document.createElement("div");
+    overlay.id = "trigger-overlay";
+    overlay.style.position = "absolute"; // Covers the camera area
+    overlay.style.top = "0";
+    overlay.style.left = "0";
+    overlay.style.width = "100%";
+    overlay.style.height = "100vh"; // Full height
+    overlay.style.backgroundColor = "#111827"; // Dark background to hide camera
+    overlay.style.zIndex = "50"; // Above camera, below buttons
+    overlay.style.display = "flex";
+    overlay.style.flexDirection = "column";
+    overlay.style.alignItems = "center";
+    overlay.style.justifyContent = "center";
+    overlay.style.gap = "20px";
+    
+    // Title
+    let title = document.createElement("h2");
+    title.innerText = "The 2 Trigger Moves";
+    title.style.color = "white";
+    title.style.marginBottom = "10px";
+    overlay.appendChild(title);
+
+    // Image Container (Side by Side)
+    let imgContainer = document.createElement("div");
+    imgContainer.style.display = "flex";
+    imgContainer.style.gap = "10px";
+    imgContainer.style.width = "100%";
+    imgContainer.style.justifyContent = "center";
+
+    // IMAGE 1: LEFT TRIGGER
+    let imgLeft = document.createElement("img");
+    imgLeft.src = "assets/left-trigger.png"; // <--- PUT YOUR IMAGE HERE
+    imgLeft.alt = "Left Trigger";
+    imgLeft.style.width = "45%";
+    imgLeft.style.maxWidth = "200px";
+    imgLeft.style.border = "2px solid orange";
+    imgLeft.style.borderRadius = "10px";
+    // Fallback if image missing
+    imgLeft.onerror = function() { 
+        this.style.display = "none"; 
+        let box = document.createElement("div");
+        box.innerText = "Left Trigger\n(L' U' L)";
+        box.style.color = "orange";
+        box.style.border = "2px solid orange";
+        box.style.padding = "20px";
+        imgContainer.prepend(box);
+    };
+
+    // IMAGE 2: RIGHT TRIGGER
+    let imgRight = document.createElement("img");
+    imgRight.src = "assets/right-trigger.png"; // <--- PUT YOUR IMAGE HERE
+    imgRight.alt = "Right Trigger";
+    imgRight.style.width = "45%";
+    imgRight.style.maxWidth = "200px";
+    imgRight.style.border = "2px solid red";
+    imgRight.style.borderRadius = "10px";
+    // Fallback
+    imgRight.onerror = function() { 
+        this.style.display = "none"; 
+        let box = document.createElement("div");
+        box.innerText = "Right Trigger\n(R U R')";
+        box.style.color = "red";
+        box.style.border = "2px solid red";
+        box.style.padding = "20px";
+        imgContainer.appendChild(box);
+    };
+
+    imgContainer.appendChild(imgLeft);
+    imgContainer.appendChild(imgRight);
+    overlay.appendChild(imgContainer);
+
+    // Add to body
+    document.body.appendChild(overlay);
+}
+
+function removeTriggerOverlay() {
+    let overlay = document.getElementById("trigger-overlay");
+    if (overlay) overlay.remove();
+}
