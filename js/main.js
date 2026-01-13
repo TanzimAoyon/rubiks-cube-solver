@@ -427,26 +427,13 @@ function startWhiteCross() {
 }
 
 
+
+
+
 function startCornersSolver() {
-    // 1. PERFECT SYNC (Yellow Top, Green Front)
-    // When you flip White->Yellow on Top, Right/Left also swap places!
-    if (!hasFlippedForCross) {
-        
-        // Swap Up (White) <-> Down (Yellow)
-        let tempUp = cubeMap.up; 
-        cubeMap.up = cubeMap.down; 
-        cubeMap.down = tempUp;
-
-        // DO NOT Swap Front/Back (Green stays Front)
-        
-        // SWAP Right (Red) <-> Left (Orange)
-        // Because physically, Orange is now on your Right!
-        let tempRight = cubeMap.right;
-        cubeMap.right = cubeMap.left;
-        cubeMap.left = tempRight;
-
-        hasFlippedForCross = true;
-    }
+    // 1. NO FLIP LOGIC. We use the raw scan data.
+    // Memory: Up=White, Down=Yellow, Front=Green, Right=Red, Left=Orange.
+    // Physical Reality (Yellow Top): Right Hand=Orange, Left Hand=Red.
 
     try {
         if (typeof getCornersMove !== "function") throw new Error("Missing getCornersMove");
@@ -459,43 +446,54 @@ function startCornersSolver() {
             speak("First Layer Complete! Great job.");
             instructionText.innerText = "Layer 1 DONE! 🏆";
             scanBtn.innerText = "NEXT: LAYER 2";
-            // scanBtn.onclick = startLayer2Solver; // Next step
             return;
         }
 
-        // --- TRIGGER INSTRUCTIONS ---
+        // --- INSTRUCTIONS (MAPPED TO YOUR HANDS) ---
+        
+        // CASE: Right Trigger
+        // Physical: Right Hand (Orange Side)
+        // Memory: Orange is 'Left'. So we operate on the 'Left' face in memory.
         if (move === "Right Trigger") {
             instructionText.innerText = "Right Trigger (R D R')";
             speak(
                 "Match found! Perform the Right Trigger. Right Up, Pull Top, Right Down.", 
                 "Right Trigger (R D R')"
             );
-            // CORRECTION: D = Pull (Clockwise). 
-            // So Right Trigger (R U R') becomes R D R'
-            virtualMove("R D R'", cubeMap); 
+            // MAP: Physical Right (Orange) = Memory Left
+            // Action: Lift Left (L), Pull Top (D), Down Left (L')
+            // Wait! Lift Orange (Standard L) moves Top to Front. We want Front to Top (L').
+            // Correct Map for "Right Trigger" on Orange side: L D L'
+            virtualMove("L D L'", cubeMap); 
         }
+        
+        // CASE: Left Trigger
+        // Physical: Left Hand (Red Side)
+        // Memory: Red is 'Right'. So we operate on the 'Right' face in memory.
         else if (move === "Left Trigger") {
             instructionText.innerText = "Left Trigger (L' D' L)";
             speak(
                 "Match found! Perform the Left Trigger. Left Up, Push Top, Left Down.", 
                 "Left Trigger (L' D' L)"
             );
-            // CORRECTION: D' = Push (Counter-Clockwise).
-            // So Left Trigger (L' U' L) becomes L' D' L
-            virtualMove("L' D' L", cubeMap);
+            // MAP: Physical Left (Red) = Memory Right
+            // Action: Lift Red (R' moves Front to Top), Push Top (D'), Down Red (R)
+            // Correct Map for "Left Trigger" on Red side: R' D' R
+            virtualMove("R' D' R", cubeMap);
         }
+
+        // CASE: Top Twist (White on Top)
         else if (move === "Top Twist") {
             instructionText.innerText = "White on Top? Twist it.";
-            speak(
-                "White is on top. Perform this twist move.", 
-                "R D2 R' D' R D R'"
-            );
-            // Standard Sune algorithm to fix top-facing white
-            virtualMove("R D2 R' D' R D R'", cubeMap); 
+            speak("White is on top. Perform the Right Trigger 3 times.", "Right Trigger x3");
+            // 3x Right Trigger (L D L')
+            virtualMove("L D L' L D L' L D L'", cubeMap); 
         }
+
+        // CASE: Rotate Top
         else if (move === "D") {
             instructionText.innerText = "Rotate Top (Finding Match...)";
-            speak("Rotate the top face until a side color matches its center.", "Rotate Top ➡️");
+            speak("Rotate the top face to find a match.", "Rotate Top ➡️");
             virtualMove("D", cubeMap);
         }
 
@@ -509,9 +507,6 @@ function startCornersSolver() {
         instructionText.style.color = "red";
     }
 }
-
-
-
 
 
 
