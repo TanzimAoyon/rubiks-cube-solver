@@ -133,7 +133,7 @@ body {
     top: 55%; /* Moved down slightly (was 50%) to look centered visually */
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 300px; height: 300px;
+    width: 250px; height: 250px;
     z-index: 20; pointer-events: none;
     
     display: grid;
