@@ -19,6 +19,97 @@ let cubeMap = {
     front: [], right: [], back: [], left: [], up: [], down: []
 };
 
+// --- NAVIGATION LOGIC ---
+
+function goHome() {
+    // Hide App & Menu
+    document.getElementById('main-app').style.display = 'none';
+    document.getElementById('steps-menu').style.display = 'none';
+    
+    // Show Home
+    document.getElementById('home-screen').style.display = 'block';
+    
+    // Stop Camera if running to save battery
+    if (video.srcObject) {
+        let tracks = video.srcObject.getTracks();
+        tracks.forEach(track => track.stop());
+        video.srcObject = null;
+    }
+
+    // Clear any overlays
+    removeTriggerOverlay();
+    removeMiddleLayerOverlay();
+    removeYellowCrossOverlay();
+    removeYellowFaceOverlay();
+    removeHeadlightsOverlay();
+    removeControls();
+}
+
+function enterMainApp() {
+    document.getElementById('home-screen').style.display = 'none';
+    document.getElementById('steps-menu').style.display = 'none';
+    document.getElementById('main-app').style.display = 'block';
+    
+    // Start Camera
+    startCamera();
+    
+    // Reset to initial scan state
+    instructionText.innerText = "Show Green Center, then Scan.";
+    if (scanBtn) {
+        scanBtn.style.display = "block";
+        scanBtn.innerText = "SCAN SIDE";
+        scanBtn.onclick = scanFace; // Reset click handler
+    }
+}
+
+function showStepsMenu() {
+    document.getElementById('home-screen').style.display = 'none';
+    document.getElementById('steps-menu').style.display = 'flex';
+}
+
+function jumpToStep(stepNumber) {
+    // 1. Enter App Mode (UI setup)
+    document.getElementById('steps-menu').style.display = 'none';
+    document.getElementById('main-app').style.display = 'block';
+    
+    // 2. Hide Scanner UI
+    if (scanBtn) scanBtn.style.display = "none";
+    
+    // 3. Clear Overlays
+    removeTriggerOverlay();
+    removeMiddleLayerOverlay();
+    removeYellowCrossOverlay();
+    removeYellowFaceOverlay();
+    removeHeadlightsOverlay();
+    removeControls();
+
+    // 4. Jump to Function
+    if (stepNumber === 1) {
+        // Daisy/Cross (Requires scan usually, but we can set up the scan UI)
+        enterMainApp(); 
+    }
+    else if (stepNumber === 2) {
+        startCornersSolver(); // Go to Corners
+    }
+    else if (stepNumber === 3) {
+        startMiddleLayerInstruction(); // Go to Middle Layer
+    }
+    else if (stepNumber === 4) {
+        startYellowCrossSolver(); // Go to Yellow Cross
+    }
+    else if (stepNumber === 5) {
+        startYellowFaceSolver(); // Go to Fish
+    }
+    else if (stepNumber === 6) {
+        startFinalSolve(); // Go to Finale
+    }
+}
+
+// --- INIT ---
+// Don't auto-start camera anymore.
+// startCamera(); <--- REMOVE OR COMMENT OUT THIS LINE AT THE BOTTOM OF YOUR FILE
+// Instead, we wait for the user to click "Start Solving"
+
 
 let hasFlippedForCross = false;
 // this is a flag (a memory switch)
@@ -241,7 +332,7 @@ function speak(audioMsg, visualMsg) {
 
 
 // --- INIT ---
-startCamera();
+//startCamera();
 // --- EVENT LISTENERS ---
 // INITIAL BUTTON SETUP
 // We use .onclick instead of addEventListener so we can overwrite it later
