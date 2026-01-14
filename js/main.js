@@ -45,6 +45,8 @@ function goHome() {
     removeControls();
 }
 
+
+
 function enterMainApp() {
     document.getElementById('home-screen').style.display = 'none';
     document.getElementById('steps-menu').style.display = 'none';
@@ -53,14 +55,27 @@ function enterMainApp() {
     // Start Camera
     startCamera();
     
-    // Reset to initial scan state
+    // FORCE BUTTON RESET
     instructionText.innerText = "Show Green Center, then Scan.";
-    if (scanBtn) {
-        scanBtn.style.display = "block";
-        scanBtn.innerText = "SCAN SIDE";
-        scanBtn.onclick = scanFace; // Reset click handler
+    
+    // Find button manually to be safe
+    let btn = document.getElementById('scan-btn');
+    if (btn) {
+        btn.style.display = "block"; // Make sure it's visible
+        btn.innerText = "SCAN SIDE";
+        btn.className = ""; // Clear any old green/blue classes
+        // Re-apply the basic styling class if needed, or rely on ID CSS
+        btn.onclick = scanFace; 
     }
 }
+
+
+
+
+
+
+
+
 
 function showStepsMenu() {
     document.getElementById('home-screen').style.display = 'none';
