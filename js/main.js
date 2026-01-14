@@ -190,6 +190,207 @@ function detectColor(r, g, b) {
     return 'W'; // Default fallback
 }
 
+
+
+// --- 4. THE SCANNER LOGIC ---
+
+function scanFace() {
+    if (!video.srcObject) return;
+    
+    // 1. Capture Image
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+
+    // 2. Scan the 9 squares
+    const width = canvas.width;
+    const height = canvas.height;
+    const stepX = width / 10; 
+    const stepY = height / 10;
+    const startX = (width / 2) - stepX; 
+    const startY = (height / 2) - stepY;
+
+    let currentScan = [];
+    for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+            let x = startX + (col * stepX);
+            let y = startY + (row * stepY);
+            const pixel = ctx.getImageData(x, y, 1, 1).data;
+            const colorCode = detectColor(pixel[0], pixel[1], pixel[2]);
+            currentScan.push(colorCode);
+        }
+    }
+    
+    // 3. Hide the Scan Button so they focus on the popup
+    if (scanBtn) scanBtn.style.display = 'none';
+    
+    // 4. Show the Preview Popup
+    showPreview(currentScan);
+}
+
+// !!! THIS WAS MISSING !!!
+function showPreview(colors) {
+    const overlay = document.getElementById('preview-overlay');
+    const grid = document.getElementById('detected-colors-grid');
+    
+    // Safety check
+    if (!overlay || !grid) {
+        console.error("Missing HTML elements for preview!");
+        return;
+    }
+
+    grid.innerHTML = ''; 
+    window.tempColors = colors; // Store for confirmation
+    
+    // Color Map for the UI
+    const hexMap = {'W':'white', 'Y':'#facc15', 'R':'#ef4444', 'O':'#f97316', 'G':'#22c55e', 'B':'#3b82f6'};
+    
+    colors.forEach(code => {
+        let div = document.createElement('div');
+        div.className = 'detected-cell';
+        div.style.backgroundColor = hexMap[code] || '#ccc';
+        grid.appendChild(div);
+    });
+    
+    overlay.style.display = 'block';
+}
+
+
+function retakeScan() {
+    document.getElementById('preview-overlay').style.display = 'none';
+    if (scanBtn) scanBtn.style.display = 'block';
+}
+
+
+function confirmScan() {
+    // 1. Hide Popup
+    const overlay = document.getElementById('preview-overlay');
+    if (overlay) overlay.style.display = 'none';
+    
+    // 2. Save Data
+    const sideName = scanOrder[currentSideIndex];
+    cubeMap[sideName] = window.tempColors;
+    
+    // 3. Advance Counter
+    currentSideIndex++;
+    
+    // 4. CHECK LOOP
+    if (currentSideIndex < scanOrder.length) {
+        // --- NOT DONE YET: Setup Next Side ---
+        let nextSide = scanOrder[currentSideIndex];
+        let nextColor = sideColors[nextSide];
+        
+        instructionText.innerText = `Great! Show ${nextColor} center.`;
+        speak(`Great! Now show the ${nextColor} center.`);
+        
+        // Bring button back for next scan
+        if (scanBtn) {
+            scanBtn.style.display = 'block';
+            scanBtn.innerText = "SCAN SIDE";
+        }
+        
+    } else {
+        // --- SCAN COMPLETE (All 6 sides done) ---
+        
+        // CHECK 1: Did we just finish the Daisy?
+        if (typeof isDaisySolved === 'function' && isDaisySolved(cubeMap)) {
+            speak("Daisy found! Moving to White Cross.");
+            startWhiteCross(); // Jump to next step
+        } 
+        // CHECK 2: Is the whole cube solved?
+        else if (typeof isCubeSolved === 'function' && isCubeSolved(cubeMap)) {
+             alert("Cube is already solved!");
+             location.reload();
+        }
+        // CHECK 3: Daisy NOT found -> Go to instructions
+        else {
+            instructionText.innerText = "Scanning Complete! Let's make the Daisy.";
+            speak("Scanning complete. Let's make the Daisy.");
+            
+            if (scanBtn) {
+                scanBtn.style.display = 'block';
+                scanBtn.innerText = "START DAISY";
+                scanBtn.onclick = startDaisySolver;
+            }
+        }
+    }
+}
+
+
+
+
+
+
+function retakeScan() {
+    document.getElementById('preview-overlay').style.display = 'none';
+    if (scanBtn) scanBtn.style.display = 'block';
+}
+
+function confirmScan() {
+    // 1. Hide Popup
+    document.getElementById('preview-overlay').style.display = 'none';
+    
+    // 2. Save Data
+    const sideName = scanOrder[currentSideIndex];
+    cubeMap[sideName] = window.tempColors;
+    
+    // 3. Advance Counter
+    currentSideIndex++;
+    
+    // 4. CHECK LOOP
+    if (currentSideIndex < scanOrder.length) {
+        // NEXT SIDE
+        let nextSide = scanOrder[currentSideIndex];
+        let nextColor = sideColors[nextSide];
+        
+        instructionText.innerText = `Great! Show ${nextColor} center.`;
+        speak(`Great! Now show the ${nextColor} center.`);
+        
+        // Bring button back
+        if (scanBtn) {
+            scanBtn.style.display = 'block';
+            scanBtn.innerText = "SCAN SIDE";
+        }
+        
+    } else {
+        // --- DONE SCANNING ---
+        
+        // CHECK: Is Daisy Already Solved?
+        if (typeof isDaisySolved === 'function' && isDaisySolved(cubeMap)) {
+            speak("Daisy found! Moving to White Cross.");
+            startWhiteCross(); 
+        } else {
+            // Not solved, go to instructions
+            instructionText.innerText = "Scanning Complete! Let's make the Daisy.";
+            speak("Scanning complete. Let's make the Daisy.");
+            
+            if (scanBtn) {
+                scanBtn.style.display = 'block';
+                scanBtn.innerText = "START DAISY";
+                scanBtn.onclick = startDaisySolver;
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // --- 3. SCANNING LOGIC ---
 function scanFace() {
     hasFlippedForCross = false; // <--- RESET THE FLAG HERE
