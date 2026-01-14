@@ -831,6 +831,89 @@ function startCornersInstruction() {
 
 
 
+// --- PHASE 4: YELLOW CROSS ---
+
+function startYellowCrossSolver() {
+    // 1. Cleanup
+    removeControls(); 
+    removeMiddleLayerOverlay(); // Just in case
+
+    // 2. Intro Speech
+    instructionText.innerText = "Phase 4: Yellow Cross";
+    speak("Phase 4. Let's make a Yellow Cross on top.");
+
+    // 3. PROCEED Button
+    let controlsDiv = document.createElement("div");
+    controlsDiv.id = "solver-controls"; 
+    controlsDiv.style.position = "fixed"; 
+    controlsDiv.style.bottom = "20px";
+    controlsDiv.style.width = "100%";
+    controlsDiv.style.display = "flex";
+    controlsDiv.style.justifyContent = "center";
+    controlsDiv.style.zIndex = "9999"; 
+
+    let btnProceed = document.createElement("button");
+    btnProceed.innerText = "PROCEED ➡️";
+    btnProceed.style.padding = "15px 40px";
+    btnProceed.style.fontSize = "18px";
+    btnProceed.style.fontWeight = "bold";
+    btnProceed.style.backgroundColor = "#2563eb"; 
+    btnProceed.style.color = "white";
+    btnProceed.style.borderRadius = "50px";
+    btnProceed.style.border = "none";
+    btnProceed.style.boxShadow = "0 4px 10px rgba(0,0,0,0.3)";
+    
+    btnProceed.onclick = startYellowCrossInstruction;
+
+    controlsDiv.appendChild(btnProceed);
+    document.body.appendChild(controlsDiv);
+}
+
+
+
+
+
+
+
+function startYellowCrossInstruction() {
+    removeControls(); 
+
+    // --- A. SHOW OVERLAY ---
+    showYellowCrossOverlay(); 
+
+    // --- B. STRATEGY SPEECH ---
+    let strategy = "Look at the Yellow stickers on top. You have one of three patterns: A Dot, an L-shape, or a Line. " +
+                   "The Move is always the same: Front Face Clockwise, then the Right Trigger, then Front Face Counter-Clockwise. " +
+                   "Tap the image to hear how to hold the cube for your specific pattern.";
+
+    // --- C. SPEAK ---
+    instructionText.innerText = "Tutorial: Yellow Cross";
+    speak(strategy);
+
+    // --- D. CONTROLS ---
+    // We use the simpler 3-button layout here since the move is always the same
+    createManualControls(
+        // 1. HELP
+        () => openVideo("YOUR_VIDEO_ID_HERE"),
+
+        // 2. REPEAT
+        () => speak(strategy),
+
+        // 3. NEXT -> Phase 5 (Yellow Edges/Whole Face)
+        () => {
+             alert("Next Step: Match Yellow Edges (Coming Soon!)");
+             // startYellowEdgesSolver(); <--- We will build this next
+        }
+    );
+}
+
+
+
+
+
+
+
+
 
 
 
@@ -1076,9 +1159,13 @@ function startMiddleLayerInstruction() {
         () => speak(introText),
 
         // 5. NEXT -> Start Layer 4 (Top Cross)
-        () => startReScanForLayer3()
-    );
-}
+        // In startMiddleLayerInstruction...
+
+    // 5. NEXT (SKIP SCAN -> GO TO YELLOW CROSS)
+    () => {
+        startYellowCrossSolver(); 
+    }
+);
 
 
 
@@ -1196,4 +1283,66 @@ function startReScanForLayer3() {
 
     instructionText.innerText = "Layer 2 Done! Prepare to scan again.";
     speak("Great job! You have solved the first two layers. Now we need to scan again to solve the final Yellow layer.");
+}
+
+
+
+
+
+
+
+
+
+
+function showYellowCrossOverlay() {
+    if (document.getElementById("cross-overlay")) return;
+
+    let overlay = document.createElement("div");
+    overlay.id = "cross-overlay";
+    overlay.style.position = "fixed";
+    overlay.style.top = "0";
+    overlay.style.left = "0";
+    overlay.style.width = "100vw";
+    overlay.style.height = "100vh";
+    overlay.style.backgroundColor = "#000000"; 
+    overlay.style.zIndex = "100"; 
+    
+    overlay.style.display = "flex";
+    overlay.style.flexDirection = "column";
+    overlay.style.alignItems = "center";
+    overlay.style.justifyContent = "start"; 
+    overlay.style.paddingTop = "60px";
+
+    // Text
+    let title = document.createElement("h2");
+    title.innerText = "Tap your Pattern";
+    title.style.color = "white";
+    title.style.marginBottom = "20px";
+    overlay.appendChild(title);
+
+    // IMAGE
+    let img = document.createElement("img");
+    img.src = "assets/yellow-cross.png"; 
+    img.style.width = "95%";
+    img.style.maxWidth = "600px";
+    img.style.border = "4px solid #facc15"; // Yellow Border
+    img.style.borderRadius = "20px";
+    img.style.cursor = "pointer";
+
+    // CLICK INTERACTION
+    img.onclick = (e) => {
+        e.stopPropagation();
+        speak("If you have a Dot, do the move once to get the L-shape. " + 
+              "If you have an L-shape, hold it at the top-left corner, like 9 o'clock. " +
+              "If you have a Line, hold it horizontal, flat like the horizon. " + 
+              "Then perform: Front Clockwise, Right Trigger, Front Counter-Clockwise.");
+    };
+
+    overlay.appendChild(img);
+    document.body.appendChild(overlay);
+}
+
+function removeYellowCrossOverlay() {
+    let overlay = document.getElementById("cross-overlay");
+    if (overlay) overlay.remove();
 }
