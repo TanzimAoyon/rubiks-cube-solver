@@ -2,71 +2,110 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AR Cube Solver</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>Cube Master AI</title>
     <link rel="stylesheet" href="css/style.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap"
+      rel="stylesheet"
+    />
   </head>
-  <body
-    class="bg-gray-900 text-white h-screen flex flex-col items-center overflow-hidden"
-  >
-    <div class="p-4 w-full bg-gray-800 text-center shadow-lg z-10">
-      <h1 class="text-xl font-bold text-yellow-400">Cube Master</h1>
-      <p id="instruction-text" class="text-sm text-gray-300 mt-1">
-        Point camera at the cube.
-      </p>
+  <body>
+    <div id="home-screen">
+      <video autoplay loop muted playsinline id="bg-video">
+        <source src="assets/home-video.mp4" type="video/mp4" />
+      </video>
+
+      <div class="video-overlay"></div>
+
+      <div class="home-content">
+        <h1>CUBE MASTER</h1>
+        <p>AI-Powered Solver</p>
+
+        <div class="home-buttons">
+          <button onclick="enterMainApp()">
+            <span>🚀</span> Start Solving
+          </button>
+
+          <button class="btn-secondary" onclick="showStepsMenu()">
+            <span>📚</span> View Steps
+          </button>
+        </div>
+      </div>
     </div>
 
-    <div
-      class="relative w-full max-w-md h-full bg-black flex justify-center items-center"
-    >
-      <video
-        id="video"
-        autoplay
-        playsinline
-        muted
-        class="absolute w-full h-full object-cover"
-      ></video>
-
-      <div
-        id="grid-overlay"
-        class="absolute w-64 h-64 grid grid-cols-3 grid-rows-3 border-4 border-yellow-500 z-10"
-      >
-        <div class="border border-white/30"></div>
-        <div class="border border-white/30"></div>
-        <div class="border border-white/30"></div>
-        <div class="border border-white/30"></div>
-        <div class="border border-white/30"></div>
-        <div class="border border-white/30"></div>
-        <div class="border border-white/30"></div>
-        <div class="border border-white/30"></div>
-        <div class="border border-white/30"></div>
+    <div id="steps-menu" style="display: none">
+      <div class="menu-header">
+        <button class="back-btn" onclick="goHome()">⬅ Back</button>
+        <h2>Select Phase</h2>
       </div>
 
-      <canvas id="canvas" class="hidden"></canvas>
+      <div class="steps-list">
+        <div class="step-card" onclick="jumpToStep(1)">
+          <h3>1. Daisy & Cross</h3>
+          <p>The foundation.</p>
+        </div>
+        <div class="step-card" onclick="jumpToStep(2)">
+          <h3>2. White Corners</h3>
+          <p>Solving the first layer.</p>
+        </div>
+        <div class="step-card" onclick="jumpToStep(3)">
+          <h3>3. Middle Layer</h3>
+          <p>The F2L Strategy.</p>
+        </div>
+        <div class="step-card" onclick="jumpToStep(4)">
+          <h3>4. Yellow Cross</h3>
+          <p>Dot, L-Shape, or Line.</p>
+        </div>
+        <div class="step-card" onclick="jumpToStep(5)">
+          <h3>5. Yellow Face</h3>
+          <p>The Fish Pattern.</p>
+        </div>
+        <div class="step-card" onclick="jumpToStep(6)">
+          <h3>6. The Finale</h3>
+          <p>Headlights & Edges.</p>
+        </div>
+      </div>
     </div>
 
-    <div
-      class="absolute bottom-0 w-full p-6 bg-gradient-to-t from-black to-transparent z-20 flex flex-col gap-3"
-    >
-      <button
-        id="scan-btn"
-        class="w-full bg-yellow-500 text-black font-bold py-4 rounded-xl shadow-lg active:scale-95 transition"
-      >
-        SCAN SIDE
-      </button>
-      <button
-        id="next-step-btn"
-        class="hidden w-full bg-blue-600 text-white font-bold py-3 rounded-xl"
-      >
-        NEXT STEP
-      </button>
+    <div id="main-app" style="display: none">
+      <div class="top-bar">
+        <button
+          onclick="goHome()"
+          style="background: none; border: none; color: white; font-size: 24px"
+        >
+          🏠
+        </button>
+        <div id="instruction-text">Show Green center, then Scan.</div>
+      </div>
+
+      <div id="camera-container">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas"></canvas>
+        <div id="scan-frame"></div>
+      </div>
+
+      <div class="controls">
+        <button id="scan-btn">SCAN SIDE</button>
+      </div>
     </div>
 
-    <script src="js/cube-logic.js"></script>
+    <div id="video-modal" class="modal" onclick="closeVideo()">
+      <div class="modal-content">
+        <iframe
+          id="yt-player"
+          width="100%"
+          height="315"
+          frameborder="0"
+          allowfullscreen
+        ></iframe>
+      </div>
+    </div>
+
     <script src="js/solver.js"></script>
-    <script src="js/cross-solver.js"></script>
-    <script src="js/corners-solver.js"></script>
     <script src="js/main.js"></script>
   </body>
 </html>

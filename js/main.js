@@ -332,7 +332,15 @@ function speak(audioMsg, visualMsg) {
 
 
 // --- INIT ---
+
+
+
 //startCamera();
+
+
+
+
+
 // --- EVENT LISTENERS ---
 // INITIAL BUTTON SETUP
 // We use .onclick instead of addEventListener so we can overwrite it later
