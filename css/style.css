@@ -1,52 +1,194 @@
-/* GLOBAL */
-body { margin: 0; background: black; color: white; font-family: sans-serif; overflow: hidden; }
+/* --- 1. GLOBAL & RESET --- */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', sans-serif;
+    background-color: #000;
+    color: white;
+    overflow: hidden; /* Prevents bouncing/scrolling */
+    /* FIX: Improves text readability on mobile */
+    -webkit-font-smoothing: antialiased; 
+}
 
-/* UTILITY: This is what makes the home screen go away */
-.hidden { display: none !important; }
+/* UTILITY CLASS (Used by JS to hide screens) */
+.hidden {
+    display: none !important;
+}
 
-/* HOME SCREEN */
+/* --- 2. HOME SCREEN (Mobile Layout Fixed) --- */
 #home-screen {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
-    z-index: 999; /* Top priority */
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%;
+    
+    /* FIX: Use 'dvh' (Dynamic Height) to ignore address bars */
+    height: 100vh; 
+    height: 100dvh; 
+    
+    z-index: 500;
     background: #111;
-    display: flex; flex-direction: column; justify-content: flex-end;
+    
+    /* FIX: Use Flexbox to force content nicely on screen */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end; /* Pushes content to bottom */
 }
-#bg-video { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; opacity: 0.5; z-index: -1; }
-.home-content { padding: 30px; z-index: 2; }
-.home-buttons { display: flex; gap: 10px; margin-top: 20px; }
-.home-buttons button { flex: 1; padding: 20px; font-size: 16px; border-radius: 12px; border: none; cursor: pointer; }
-.home-buttons button:first-child { background: #2563eb; color: white; } /* Blue Start */
-.home-buttons button.btn-secondary { background: rgba(255,255,255,0.2); color: white; }
 
-/* MAIN APP */
-#main-app { display: none; width: 100%; height: 100%; position: relative; }
-#video, #canvas { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
-
-/* SCANNER UI */
-#scan-frame {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 300px; height: 300px; z-index: 10;
-    display: grid; grid-template-columns: repeat(3, 1fr);
+#bg-video {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    object-fit: cover; z-index: -1; opacity: 0.5;
 }
-.grid-cell { border: 2px solid rgba(255,255,255,0.5); }
 
-.controls { position: absolute; bottom: 50px; width: 100%; display: flex; justify-content: center; z-index: 20; }
-#scan-btn { padding: 15px 40px; font-size: 20px; font-weight: bold; background: #facc15; border: none; border-radius: 50px; }
+.home-content {
+    width: 100%;
+    box-sizing: border-box;
+    z-index: 2;
+    text-align: left;
+    
+    /* FIX: Add HUGE bottom padding so buttons sit above the browser bar */
+    padding: 20px 25px 120px 25px; 
+}
 
-.top-bar { position: absolute; top: 0; width: 100%; padding: 40px 20px; z-index: 20; display: flex; align-items: center; gap: 10px; background: linear-gradient(black, transparent); }
+.home-content h1 {
+    font-size: 48px; /* Bigger Title */
+    margin: 0; font-weight: 800; letter-spacing: -1px;
+    text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    line-height: 1.1;
+}
 
-/* MENU */
+.home-content p {
+    font-size: 18px; /* Bigger Text */
+    margin: 10px 0 30px 0;
+    opacity: 0.9;
+}
+
+.home-buttons {
+    display: flex; gap: 15px; width: 100%;
+}
+
+.home-buttons button {
+    flex: 1;
+    padding: 22px 0; /* Taller Buttons */
+    border: none; border-radius: 18px;
+    font-size: 18px; /* Bigger Font */
+    font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.home-buttons button:first-child { background: #2563eb; color: white; }
+.home-buttons button.btn-secondary {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+}
+
+/* --- 3. MENU SCREEN (Zoom Fixed) --- */
 #steps-menu {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: #222; z-index: 1000;
-    display: none; flex-direction: column; padding: 20px;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100dvh;
+    background: #222; z-index: 600;
+    display: flex; flex-direction: column;
+    padding-top: 50px; /* Safe space for top notch */
 }
-.step-card { padding: 20px; background: #333; margin-bottom: 10px; border-radius: 10px; border-left: 5px solid #2563eb; }
 
-/* POPUP */
-#preview-overlay {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    background: #222; padding: 20px; z-index: 50; border: 1px solid white; text-align: center;
+.menu-header {
+    display: flex; align-items: center; padding: 0 25px; margin-bottom: 20px;
 }
-#detected-colors-grid { display: grid; grid-template-columns: repeat(3, 1fr); width: 100px; height: 100px; margin: 10px auto; }
-.detected-cell { border: 1px solid #555; }
+.back-btn {
+    background: rgba(255,255,255,0.1); color: white; border: none;
+    padding: 10px 20px; border-radius: 30px; font-weight: bold; font-size: 16px;
+}
+
+.steps-list {
+    flex: 1; overflow-y: auto;
+    padding: 0 25px 100px 25px; /* Bottom padding for scroll */
+    display: flex; flex-direction: column; gap: 15px;
+}
+
+.step-card {
+    background: #333;
+    padding: 20px; /* More breathing room */
+    border-radius: 16px;
+    border-left: 6px solid #2563eb;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+.step-card h3 { font-size: 20px; margin: 0 0 5px 0; }
+.step-card p { font-size: 15px; color: #ccc; margin: 0; }
+
+/* --- 4. MAIN APP & CAMERA --- */
+#main-app {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100dvh;
+    z-index: 10; background: black;
+}
+
+#camera-container {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+}
+#video, #canvas { width: 100%; height: 100%; object-fit: cover; }
+
+/* FIX: Centering the Grid Visuals */
+#scan-frame {
+    position: absolute;
+    top: 55%; /* Moved down slightly (was 50%) to look centered visually */
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px; height: 300px;
+    z-index: 20; pointer-events: none;
+    
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    border: 3px solid rgba(255,255,255,0.8); /* Thicker border */
+    box-shadow: 0 0 20px rgba(0,0,0,0.5); /* Shadow to see it better */
+}
+.grid-cell { border: 1px solid rgba(255, 255, 255, 0.4); }
+
+.top-bar {
+    position: absolute; top: 0; left: 0; width: 100%;
+    padding: 50px 20px 20px; /* More top padding for notches */
+    background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent);
+    z-index: 40;
+    text-align: center;
+    font-size: 18px; font-weight: 600;
+    display: flex; justify-content: center; gap: 15px;
+}
+
+/* SCAN BUTTON (Lifted up) */
+.controls {
+    position: absolute; 
+    bottom: 60px; /* Lifted higher */
+    left: 0; width: 100%;
+    display: flex; justify-content: center;
+    z-index: 50; padding: 0 30px; box-sizing: border-box;
+}
+#scan-btn {
+    width: 100%; padding: 18px; 
+    font-size: 20px; font-weight: 800; letter-spacing: 1px;
+    background-color: #facc15; color: black;
+    border: none; border-radius: 50px;
+    box-shadow: 0 5px 20px rgba(250, 204, 21, 0.4);
+}
+
+/* --- 5. OVERLAYS (The "Off Angle" Fix) --- */
+/* The JS creates #generic-overlay, we style it here to force it to look right */
+#generic-overlay {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important; /* Centers vertical */
+    align-items: center !important;     /* Centers horizontal */
+    padding-top: 0 !important;          /* Removes JS top padding */
+    padding-bottom: 0 !important;
+    background: rgba(0,0,0,0.95) !important;
+}
+
+#generic-overlay h2 { font-size: 28px; margin-bottom: 20px; }
+#generic-overlay p { font-size: 18px; line-height: 1.5; max-width: 80%; }
+#generic-overlay img { max-height: 40vh; object-fit: contain; }
+
+/* FIX: Ensure manual controls (Next/Proceed) are safe from bottom edge */
+#solver-controls {
+    bottom: 50px !important; /* Lifted up from bottom */
+    padding: 0 20px;
+    box-sizing: border-box;
+}
