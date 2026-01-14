@@ -770,10 +770,10 @@ function startYellowCrossInstruction() {
 
         // 3. NEXT -> Phase 5 (Yellow Edges/Whole Face)
         () => {
-             alert("Next Step: Match Yellow Edges (Coming Soon!)");
-             // startYellowEdgesSolver(); <--- We will build this next
-        }
-    );
+        // Go to Yellow Face (Phase 5)
+        startYellowFaceSolver(); 
+    }
+);
 }
 
 
@@ -1117,8 +1117,6 @@ function removeMiddleLayerOverlay() {
 
 
 
-
-
 function showYellowCrossOverlay() {
     if (document.getElementById("cross-overlay")) return;
 
@@ -1136,20 +1134,22 @@ function showYellowCrossOverlay() {
     overlay.style.flexDirection = "column";
     overlay.style.alignItems = "center";
     overlay.style.justifyContent = "start"; 
-    overlay.style.paddingTop = "60px";
+    overlay.style.paddingTop = "40px"; // Reduced top padding slightly
+    overlay.style.overflowY = "auto";  // Enable scrolling for small screens
+    overlay.style.paddingBottom = "100px";
 
-    // Text
+    // 1. Title
     let title = document.createElement("h2");
     title.innerText = "Tap your Pattern";
     title.style.color = "white";
-    title.style.marginBottom = "20px";
+    title.style.marginBottom = "10px";
     overlay.appendChild(title);
 
-    // IMAGE
+    // 2. IMAGE
     let img = document.createElement("img");
-    img.src = "assets/yellow-cross.png"; 
-    img.style.width = "95%";
-    img.style.maxWidth = "600px";
+    img.src = "assets/yellow-cross.png"; // Check if yours is .png or .jpg!
+    img.style.width = "90%";
+    img.style.maxWidth = "500px";
     img.style.border = "4px solid #facc15"; // Yellow Border
     img.style.borderRadius = "20px";
     img.style.cursor = "pointer";
@@ -1162,12 +1162,359 @@ function showYellowCrossOverlay() {
               "If you have a Line, hold it horizontal, flat like the horizon. " + 
               "Then perform: Front Clockwise, Right Trigger, Front Counter-Clockwise.");
     };
-
     overlay.appendChild(img);
+
+    // 3. TEXT INSTRUCTION BLOCK (NEW!)
+    let textBox = document.createElement("div");
+    textBox.style.color = "white";
+    textBox.style.marginTop = "20px";
+    textBox.style.textAlign = "center";
+    textBox.style.padding = "0 20px";
+    textBox.style.fontSize = "16px";
+    textBox.style.lineHeight = "1.6";
+
+    textBox.innerHTML = `
+        <h3 style="color: #facc15; font-size: 22px; margin-bottom: 5px;">F R U R' U' F'</h3>
+        <p style="font-size: 14px; color: #ccc;">(Front Clockwise, Right Trigger, Front Counter-Clockwise)</p>
+        <div style="text-align: left; margin-top: 15px; display: inline-block;">
+            <p>• <b>Dot:</b> Do it once ➝ Get "L"</p>
+            <p>• <b>"L" Shape:</b> Hold at 9:00 ➝ Get Line</p>
+            <p>• <b>Line:</b> Hold Horizontal ➝ Get Cross</p>
+        </div>
+    `;
+
+    overlay.appendChild(textBox);
     document.body.appendChild(overlay);
 }
 
 function removeYellowCrossOverlay() {
     let overlay = document.getElementById("cross-overlay");
     if (overlay) overlay.remove();
+}
+
+
+
+
+
+
+
+
+
+// --- PHASE 5: YELLOW FACE (OLL) ---
+
+function startYellowFaceSolver() {
+    // 1. Cleanup
+    removeControls(); 
+    removeYellowCrossOverlay(); // Remove previous overlay
+
+    // 2. Intro Speech
+    instructionText.innerText = "Phase 5: Yellow Face";
+    speak("Phase 5. Now we will make the entire top face Yellow.");
+
+    // 3. PROCEED Button
+    let controlsDiv = document.createElement("div");
+    controlsDiv.id = "solver-controls"; 
+    controlsDiv.style.position = "fixed"; 
+    controlsDiv.style.bottom = "20px";
+    controlsDiv.style.width = "100%";
+    controlsDiv.style.display = "flex";
+    controlsDiv.style.justifyContent = "center";
+    controlsDiv.style.zIndex = "9999"; 
+
+    let btnProceed = document.createElement("button");
+    btnProceed.innerText = "PROCEED ➡️";
+    btnProceed.style.padding = "15px 40px";
+    btnProceed.style.fontSize = "18px";
+    btnProceed.style.fontWeight = "bold";
+    btnProceed.style.backgroundColor = "#2563eb"; 
+    btnProceed.style.color = "white";
+    btnProceed.style.borderRadius = "50px";
+    btnProceed.style.border = "none";
+    btnProceed.style.boxShadow = "0 4px 10px rgba(0,0,0,0.3)";
+    
+    btnProceed.onclick = startYellowFaceInstruction;
+
+    controlsDiv.appendChild(btnProceed);
+    document.body.appendChild(controlsDiv);
+}
+
+
+
+
+
+function startYellowFaceInstruction() {
+    removeControls(); 
+
+    // --- A. SHOW OVERLAY ---
+    showYellowFaceOverlay(); 
+
+    // --- B. STRATEGY SPEECH ---
+    // Matches your transcript exactly
+    let strategy = "Count the yellow corners on top. " +
+                   "If you have 0 or 2 yellow corners: Rotate the top until a yellow sticker is on the Left Face, at the top-right corner closest to you. " +
+                   "If you have 1 yellow corner, it looks like a Fish. Point the mouth to the bottom-left. " +
+                   "Then perform the algorithm: R, U, R prime, U, R, U 2, R prime.";
+
+    // --- C. SPEAK ---
+    instructionText.innerText = "Tutorial: Yellow Face (The Fish)";
+    speak(strategy);
+
+    // --- D. CONTROLS ---
+    createManualControls(
+        // 1. HELP
+        () => openVideo("YOUR_VIDEO_ID_HERE"),
+
+        // 2. REPEAT
+        () => speak(strategy),
+
+        // In startYellowFaceInstruction...
+
+    // 3. NEXT
+    () => {
+        startFinalSolve(); // <--- Link to the Finale!
+    }
+);
+}
+
+
+
+
+
+function showYellowFaceOverlay() {
+    if (document.getElementById("fish-overlay")) return;
+
+    let overlay = document.createElement("div");
+    overlay.id = "fish-overlay";
+    overlay.style.position = "fixed";
+    overlay.style.top = "0";
+    overlay.style.left = "0";
+    overlay.style.width = "100vw";
+    overlay.style.height = "100vh";
+    overlay.style.backgroundColor = "#000000"; 
+    overlay.style.zIndex = "100"; 
+    
+    overlay.style.display = "flex";
+    overlay.style.flexDirection = "column";
+    overlay.style.alignItems = "center";
+    overlay.style.justifyContent = "start"; 
+    overlay.style.paddingTop = "40px";
+    overlay.style.overflowY = "auto"; 
+    overlay.style.paddingBottom = "100px";
+
+    // 1. Title
+    let title = document.createElement("h2");
+    title.innerText = "Make the Fish";
+    title.style.color = "white";
+    title.style.marginBottom = "10px";
+    overlay.appendChild(title);
+
+    // 2. IMAGE
+    let img = document.createElement("img");
+    img.src = "assets/yellow-fish.png"; // Save the image I generate as this name!
+    img.style.width = "90%";
+    img.style.maxWidth = "500px";
+    img.style.border = "4px solid #facc15"; 
+    img.style.borderRadius = "20px";
+    img.style.cursor = "pointer";
+
+    img.onclick = (e) => {
+        e.stopPropagation();
+        speak("The Algorithm is: Right Up, Top Push, Right Down, Top Push, Right Up, Top Double Turn, Right Down. " + 
+              "If you have the Fish, aim the mouth Bottom-Left. If not, look for a yellow sticker on the Left side.");
+    };
+    overlay.appendChild(img);
+
+    // 3. TEXT INSTRUCTION BLOCK
+    let textBox = document.createElement("div");
+    textBox.style.color = "white";
+    textBox.style.marginTop = "20px";
+    textBox.style.textAlign = "center";
+    textBox.style.padding = "0 20px";
+    textBox.style.fontSize = "16px";
+    textBox.style.lineHeight = "1.6";
+
+    textBox.innerHTML = `
+        <h3 style="color: #facc15; font-size: 22px; margin-bottom: 5px;">R U R' U R U2 R'</h3>
+        <div style="text-align: left; margin-top: 15px; display: inline-block;">
+            <p><b>1 Corner (Fish):</b><br>MOUTH points Bottom-Left ↙️</p>
+            <p style="margin-top:10px;"><b>0 or 2 Corners:</b><br>Left Face ⬅️ must have yellow sticker at top-right.</p>
+        </div>
+    `;
+
+    overlay.appendChild(textBox);
+    document.body.appendChild(overlay);
+}
+
+function removeYellowFaceOverlay() {
+    let overlay = document.getElementById("fish-overlay");
+    if (overlay) overlay.remove();
+}
+
+
+
+// --- PHASE 6: THE GRAND FINALE ---
+
+function startFinalSolve() {
+    // 1. Cleanup
+    removeControls(); 
+    removeYellowFaceOverlay(); 
+
+    // 2. Intro Speech
+    instructionText.innerText = "Phase 6: The Finale";
+    speak("Phase 6. We are almost done. Let's solve the corners first.");
+
+    // 3. PROCEED Button
+    let controlsDiv = document.createElement("div");
+    controlsDiv.id = "solver-controls"; 
+    controlsDiv.style.position = "fixed"; 
+    controlsDiv.style.bottom = "20px";
+    controlsDiv.style.width = "100%";
+    controlsDiv.style.display = "flex";
+    controlsDiv.style.justifyContent = "center";
+    controlsDiv.style.zIndex = "9999"; 
+
+    let btnProceed = document.createElement("button");
+    btnProceed.innerText = "PROCEED ➡️";
+    btnProceed.style.padding = "15px 40px";
+    btnProceed.style.fontSize = "18px";
+    btnProceed.style.fontWeight = "bold";
+    btnProceed.style.backgroundColor = "#2563eb"; 
+    btnProceed.style.color = "white";
+    btnProceed.style.borderRadius = "50px";
+    btnProceed.style.border = "none";
+    btnProceed.style.boxShadow = "0 4px 10px rgba(0,0,0,0.3)";
+    
+    // Go to Step A (Corners)
+    btnProceed.onclick = startFinalCornersInstruction;
+
+    controlsDiv.appendChild(btnProceed);
+    document.body.appendChild(controlsDiv);
+}
+
+
+
+
+function startFinalCornersInstruction() {
+    removeControls(); 
+    showHeadlightsOverlay(); 
+
+    let strategy = "Look at the top layer sides. Do you see two corner stickers that are the same color? We call these Headlights. " +
+                   "If you see them, rotate the top so they match their side, then put them at the BACK. " +
+                   "If you don't see them, do the move anywhere, and they will appear. " +
+                   "The Move is: Right Down, Front Clockwise, Right Down, Back Turn Twice. Right Up, Front Counter-Clockwise, Right Down, Back Turn Twice, Right Turn Twice.";
+
+    instructionText.innerText = "Step A: Match Corners (Headlights)";
+    speak(strategy);
+
+    createManualControls(
+        // 1. HELP
+        () => openVideo("YOUR_VIDEO_ID_HERE"),
+
+        // 2. REPEAT
+        () => speak(strategy),
+
+        // 3. NEXT -> Go to Edges
+        () => {
+             startFinalEdgesInstruction(); // <--- Next Step
+        }
+    );
+}
+
+function showHeadlightsOverlay() {
+    if (document.getElementById("headlights-overlay")) return;
+
+    let overlay = document.createElement("div");
+    overlay.id = "headlights-overlay";
+    overlay.style.position = "fixed";
+    overlay.style.top = "0";
+    overlay.style.left = "0";
+    overlay.style.width = "100vw";
+    overlay.style.height = "100vh";
+    overlay.style.backgroundColor = "#000000"; 
+    overlay.style.zIndex = "100"; 
+    
+    overlay.style.display = "flex";
+    overlay.style.flexDirection = "column";
+    overlay.style.alignItems = "center";
+    overlay.style.justifyContent = "start"; 
+    overlay.style.paddingTop = "40px";
+    overlay.style.overflowY = "auto"; 
+    overlay.style.paddingBottom = "100px";
+
+    let title = document.createElement("h2");
+    title.innerText = "Find Headlights";
+    title.style.color = "white";
+    overlay.appendChild(title);
+
+    let img = document.createElement("img");
+    img.src = "assets/yellow-headlights.png"; // Make sure to save the image!
+    img.style.width = "90%";
+    img.style.maxWidth = "500px";
+    img.style.border = "4px solid #ef4444"; 
+    img.style.borderRadius = "20px";
+    img.onclick = (e) => { e.stopPropagation(); speak("Put Headlights at the Back. Then: R Prime, F, R Prime, B 2. R, F Prime, R Prime, B 2, R 2."); };
+    overlay.appendChild(img);
+
+    let textBox = document.createElement("div");
+    textBox.style.color = "white";
+    textBox.style.marginTop = "20px";
+    textBox.style.textAlign = "center";
+    textBox.innerHTML = `
+        <h3 style="color: #facc15; font-size: 18px;">R' F R' B2 R F' R' B2 R2</h3>
+        <p>1. Find matching corners (Headlights).</p>
+        <p>2. Put them at the <b>BACK</b>.</p>
+        <p>3. Do the move.</p>
+    `;
+    overlay.appendChild(textBox);
+    document.body.appendChild(overlay);
+}
+
+function removeHeadlightsOverlay() {
+    let overlay = document.getElementById("headlights-overlay");
+    if (overlay) overlay.remove();
+}
+
+
+
+
+
+
+
+
+function startFinalEdgesInstruction() {
+    removeControls();
+    removeHeadlightsOverlay(); // Clear previous
+
+    let strategy = "Final Step. Look for a side that is fully solved. Put that solid side at the BACK. " +
+                   "If you have no solid side, do the move anywhere once. " +
+                   "The Final Move is: Front Spin Twice, Top Push, Left Down, Right Down. Front Spin Twice. Left Up, Right Up, Top Push, Front Spin Twice. " +
+                   "Congratulations! You have solved the cube!";
+
+    instructionText.innerText = "Step B: Final Edges";
+    speak(strategy);
+
+    // SIMPLE OVERLAY FOR TEXT ONLY (No image needed, logic is simple)
+    let overlay = document.createElement("div");
+    overlay.style.position = "fixed";
+    overlay.style.top = "100px";
+    overlay.style.width = "100%";
+    overlay.style.textAlign = "center";
+    overlay.style.color = "white";
+    overlay.innerHTML = `
+        <h1 style="color:#22c55e; font-size:40px;">FINISH IT!</h1>
+        <h3 style="color:#facc15; font-size:24px; margin-top:20px;">F2 U L R' F2 L' R U F2</h3>
+        <p style="margin-top:20px;">1. Put Solved Side at <b>BACK</b>.</p>
+        <p>2. Perform the move.</p>
+        <p>3. If not solved, do it one more time.</p>
+    `;
+    document.body.appendChild(overlay);
+
+    createManualControls(
+        () => openVideo("YOUR_VIDEO_ID_HERE"),
+        () => speak(strategy),
+        () => {
+             alert("CONGRATULATIONS! 🎉 You are a Cube Master!");
+             location.reload(); // Reset the app
+        }
+    );
 }
