@@ -166,42 +166,46 @@ function detectColor(r, g, b) {
 
 // --- 4. SCANNER LOGIC (FIXED) ---
 
+// --- UPDATED SCANNING LOGIC (Tighter focus to avoid white borders) ---
 function scanFace() {
     if (!video.srcObject) return;
-    hasFlippedForCross = false; 
-
+    
     // 1. Capture Image
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0);
 
-    // 2. Scan the 9 squares
     const width = canvas.width;
     const height = canvas.height;
-    const stepX = width / 10; 
-    const stepY = height / 10;
-    const startX = (width / 2) - stepX; 
-    const startY = (height / 2) - stepY;
+
+    // --- MATH ADJUSTMENT FOR WHITE BORDERS ---
+    // Instead of dividing by 10 (wide), we use a smaller gap to bunch points in the center
+    const gap = width / 14; // Smaller gap = Tighter sampling
+    
+    // Center point of the screen
+    const centerX = width / 2;
+    const centerY = height / 2;
 
     let currentScan = [];
-    for (let row = 0; row < 3; row++) {
-        for (let col = 0; col < 3; col++) {
-            let x = startX + (col * stepX);
-            let y = startY + (row * stepY);
+    
+    // We calculate offsets: -1 (Left), 0 (Center), +1 (Right)
+    for (let row = -1; row <= 1; row++) {
+        for (let col = -1; col <= 1; col++) {
+            
+            // Calculate exact pixel position based on center
+            let x = centerX + (col * gap);
+            let y = centerY + (row * gap);
+
             const pixel = ctx.getImageData(x, y, 1, 1).data;
             const colorCode = detectColor(pixel[0], pixel[1], pixel[2]);
             currentScan.push(colorCode);
         }
     }
     
-    // --- REMOVED THE STRICT GUARD HERE ---
-    // The code that blocked you ("Wrong side") is gone. 
-    // It will now proceed to the preview.
-
-    // 3. Hide the Scan Button
+    // 3. Hide Button
     if (scanBtn) scanBtn.style.display = 'none';
     
-    // 4. Show the Preview Popup
+    // 4. Show Preview
     showPreview(currentScan);
 }
 
@@ -792,11 +796,22 @@ checkBrowser();
 // ONLY if you don't have a solver.js file
 // ==========================================
 
+// --- REAL DAISY LOGIC ---
 function isDaisySolved(map) {
-    // Simple check: Yellow center (D) + 4 White edges (U, D, L, R relative)
-    // This is a placeholder. Real logic checks specific sticker positions.
-    // If you have the real solver.js, this isn't needed.
-    return false; 
+    // 1. Get the UP (Top) face
+    let up = map.up;
+    
+    // If we haven't scanned the UP face yet, it can't be solved
+    if (!up || up.length < 9) return false;
+    
+    // 2. CHECK THE PATTERN
+    // Index 4 is Center. Indices 1, 3, 5, 7 are the Edges (North, West, East, South)
+    
+    const centerIsYellow = (up[4] === 'Y');
+    const petalsAreWhite = (up[1] === 'W' && up[3] === 'W' && up[5] === 'W' && up[7] === 'W');
+
+    // Return TRUE only if both conditions are met
+    return centerIsYellow && petalsAreWhite;
 }
 
 function isCubeSolved(map) {
