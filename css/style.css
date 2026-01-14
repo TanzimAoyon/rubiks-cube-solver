@@ -1,253 +1,69 @@
-/* --- GLOBAL --- */
-body {
-    margin: 0;
-    padding: 0;
-    font-family: 'Poppins', sans-serif;
-    background-color: #000; /* Black background to hide gaps */
-    overflow: hidden; 
-    color: white;
-}
-
-/* --- HOME SCREEN --- */
-/* --- HOME SCREEN (FIXED FOR CHROME) --- */
+/* --- HOME SCREEN FIXED --- */
 #home-screen {
     position: fixed;
-    top: 0; 
-    left: 0; 
-    width: 100%; 
-    
-    /* FIX: Use 'dvh' so address bars don't cut it off */
-    height: 100vh; /* Fallback for old phones */
-    height: 100dvh; /* The Magic Fix */
-    
+    top: 0; left: 0; width: 100%; height: 100dvh;
     z-index: 500;
-    overflow: hidden; /* Stop scrolling */
-    
-    /* Center content vertically to be safe */
     display: flex;
     flex-direction: column;
-    justify-content: flex-end; /* Push content to bottom */
-}
-
-/* ... (keep #bg-video and .video-overlay as is) ... */
-
-.home-content {
-    /* FIX: No more absolute positioning that gets covered */
-    position: relative; 
-    width: 100%;
-    
-    /* FIX: Push it up higher to clear the Chrome bottom bar */
-    padding-bottom: 130px; 
-    padding-left: 20px;
-    padding-right: 20px;
-    box-sizing: border-box; /* Ensures padding doesn't break layout */
-    
-    color: white;
-    text-align: left;
+    justify-content: flex-end; /* Align content to bottom */
+    padding-bottom: 50px; /* Safe space from bottom edge */
+    box-sizing: border-box;
 }
 
 #bg-video {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    object-fit: cover;
-    z-index: -1;
-
-}
-
-.video-overlay {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.4); 
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    object-fit: cover; z-index: -1;
 }
 
 .home-content {
-    position: absolute;
-    bottom: 80px; 
-    left: 20px; right: 20px;
-    text-align: left;
-}
-
-.home-content h1 {
-    font-size: 48px; margin: 0; font-weight: 800;
-    text-shadow: 0 4px 10px rgba(0,0,0,0.5);
-}
-
-.home-content p {
-    font-size: 18px; margin-top: 5px; opacity: 0.9;
-}
-
-.home-buttons {
-    display: flex; gap: 15px; margin-top: 30px;
-}
-
-.home-buttons button {
-    flex: 1; padding: 18px;
-    border: none; border-radius: 16px;
-    font-size: 16px; font-weight: bold; cursor: pointer;
-    background: #2563eb; color: white;
-    box-shadow: 0 5px 15px rgba(37, 99, 235, 0.4);
-}
-
-.home-buttons button.btn-secondary {
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.3);
-}
-
-/* --- STEPS MENU (Fixed Layout & Background) --- */
-#steps-menu {
-    position: fixed;
-    top: 0; left: 0; width: 100vw; height: 100vh;
-    /* FIX: Ensure path is correct relative to CSS file */
-    background: url('../assets/menu-bg.jpg') no-repeat center center/cover;
-    z-index: 600;
-    display: flex;
-    flex-direction: column;
-    padding-top: 40px;
-}
-
-.menu-header {
-    display: flex; align-items: center; padding: 0 20px; margin-bottom: 15px;
-}
-
-.back-btn {
-    background: rgba(0,0,0,0.6); color: white; border: none;
-    padding: 8px 15px; border-radius: 20px; font-weight: bold;
-}
-
-.steps-list {
-    flex: 1; overflow-y: auto;
-    padding: 0 20px 80px 20px; /* Bottom padding for scroll */
-    display: flex; flex-direction: column; gap: 10px; /* Reduced gap */
-}
-
-/* SMALLER CARDS */
-
-/* --- UPDATED CARD STYLE (More Transparent) --- */
-
-
-
-/* --- TRANSPARENT (NO BLUR) CARD --- */
-.step-card {
-    /* Fully transparent background */
-    background: transparent; 
-    
-    /* REMOVED BLUR LINES (backdrop-filter) */
-    
-    padding: 15px;
-    border-radius: 16px;
-    margin-bottom: 15px;
-    cursor: pointer;
-    
-    /* Strong white border to define the box shape */
-    border: 2px solid rgba(255, 255, 255, 0.5);
-    border-left: 5px solid #2563eb; /* Keep the blue accent */
-    
-    /* Optional: Subtle shadow to lift it off the background */
-    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-    transition: transform 0.2s, background 0.2s;
-}
-
-/* Hover Effect: Slight white tint when you touch it */
-.step-card:active, .step-card:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: scale(0.98);
-}
-
-/* Text Styling - Strong Shadow for Readability */
-.step-card h3 {
-    margin: 0; 
-    font-size: 20px; 
-    font-weight: 800; 
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
     color: white;
-    /* Black outline shadow so text is readable on ANY background */
-    text-shadow: 2px 2px 4px #000000; 
+    text-align: left;
+    margin-bottom: 40px; /* Moves buttons up slightly */
 }
 
-.step-card p {
-    margin: 4px 0 0 0; 
-    font-weight: 700;
-    font-size: 14px;
-    color: #f0f0f0; 
-    text-shadow: 1px 1px 3px #000000;
-}
-
-
-
-
-
-
-
-
-
-
-/* --- MAIN APP & SCAN BUTTON FIX --- */
-#main-app {
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    z-index: 10;
-    background: black;
-}
-
-/* Camera Full Screen */
-#video, #canvas {
-    position: absolute; top: 0; left: 0;
-    width: 100%; height: 100%;
-    object-fit: cover;
-}
-
-/* The Grid Overlay */
-#scan-frame {
+/* --- RESTORED SCANNER STYLES --- */
+#preview-overlay {
     position: absolute;
     top: 50%; left: 50%;
-    width: 300px; height: 300px;
     transform: translate(-50%, -50%);
-    border: 2px solid rgba(255, 255, 255, 0.5);
+    background: rgba(0, 0, 0, 0.9);
+    padding: 20px;
+    border-radius: 15px;
+    border: 2px solid white;
+    z-index: 100; /* On top of everything */
+    text-align: center;
+    width: 80%;
+}
+
+#preview-overlay h3 { color: white; margin-top: 0; }
+
+#detected-colors-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-    pointer-events: none; /* Let clicks pass through */
-    z-index: 20;
+    gap: 5px;
+    margin: 15px auto;
+    width: 150px; height: 150px;
 }
 
-/* Style for the 9 little squares */
-.grid-cell {
-    border: 1px solid rgba(255, 255, 255, 0.5); /* Semi-transparent white lines */
-    box-sizing: border-box; /* Keeps the size perfect */
+.detected-cell {
+    width: 100%; height: 100%;
+    border: 1px solid white;
+    border-radius: 4px;
 }
 
-
-
-
-/* Top Bar Overlay */
-.top-bar {
-    position: absolute; top: 0; left: 0; width: 100%;
-    padding: 50px 20px 20px; /* Space for Notch */
-    display: flex; gap: 15px; align-items: center;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
-    z-index: 40;
+.preview-buttons {
+    display: flex; gap: 10px; justify-content: center;
 }
 
-/* --- THE MISSING BUTTON FIX --- */
-/* This container holds the button at the bottom */
-.controls {
-    position: absolute;
-    bottom: 30px; left: 0; width: 100%;
-    display: flex; justify-content: center;
-    padding: 0 20px;
-    box-sizing: border-box;
-    z-index: 50; /* High Z-index to sit ON TOP of video */
+.preview-buttons button {
+    padding: 10px 20px;
+    border: none; border-radius: 8px;
+    color: white; font-weight: bold; font-size: 16px;
 }
 
-#scan-btn {
-    width: 100%;
-    background-color: #facc15; /* Yellow */
-    color: black;
-    font-weight: bold;
-    font-size: 18px;
-    padding: 16px;
-    border: none;
-    border-radius: 12px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-    display: block; /* Force visible */
-}
+/* Existing styles for transparent menu & grid... */
+.grid-cell { border: 1px solid rgba(255, 255, 255, 0.5); }
+/* ... (Keep your transparent menu card styles from before) ... */

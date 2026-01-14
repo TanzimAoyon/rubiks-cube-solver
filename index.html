@@ -25,7 +25,6 @@
       >
         <source src="assets/home-video.mp4" type="video/mp4" />
       </video>
-
       <div class="video-overlay"></div>
 
       <div class="home-content">
@@ -36,7 +35,6 @@
           <button onclick="enterMainApp()">
             <span>🚀</span> Start Solving
           </button>
-
           <button class="btn-secondary" onclick="showStepsMenu()">
             <span>📚</span> View Steps
           </button>
@@ -49,7 +47,6 @@
         <button class="back-btn" onclick="goHome()">⬅ Back</button>
         <h2>Select Phase</h2>
       </div>
-
       <div class="steps-list">
         <div class="step-card" onclick="jumpToStep(1)">
           <h3>1. Daisy & Cross</h3>
@@ -92,14 +89,35 @@
       <div id="camera-container">
         <video id="video" autoplay playsinline></video>
         <canvas id="canvas"></canvas>
+
         <div id="scan-frame">
-        <div class="grid-cell"></div> <div class="grid-cell"></div> <div class="grid-cell"></div>
-        <div class="grid-cell"></div> <div class="grid-cell"></div> <div class="grid-cell"></div>
-        <div class="grid-cell"></div> <div class="grid-cell"></div> <div class="grid-cell"></div>
-    </div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+        </div>
+      </div>
 
       <div class="controls">
         <button id="scan-btn">SCAN SIDE</button>
+      </div>
+
+      <div id="preview-overlay" style="display: none">
+        <h3>Is this correct?</h3>
+        <div id="detected-colors-grid"></div>
+        <div class="preview-buttons">
+          <button onclick="retakeScan()" style="background: #ef4444">
+            Retake
+          </button>
+          <button onclick="confirmScan()" style="background: #22c55e">
+            Confirm
+          </button>
+        </div>
       </div>
     </div>
 
