@@ -523,138 +523,7 @@ function closeVideo() {
 }
 
 
-//-------------------------------------------------------------------------
-// --- CONTROLS MANAGER (The 3 Buttons) ---
 
-// function updateControls(onRepeat, onVideo, onNext) {
-//     // 1. HIDE the old big button (Critical!)
-//     if (scanBtn) scanBtn.style.display = "none";
-
-//     // 2. Find or Create the Container
-//     let controlsDiv = document.getElementById("solver-controls");
-    
-//     // Safety check: if container missing, append it after instruction text
-//     if (!controlsDiv) {
-//         controlsDiv = document.createElement("div");
-//         controlsDiv.id = "solver-controls";
-//         controlsDiv.style.display = "flex";
-//         controlsDiv.style.gap = "10px";
-//         controlsDiv.style.marginTop = "15px";
-//         controlsDiv.style.justifyContent = "center";
-//         controlsDiv.style.width = "100%";
-        
-//         // Append to the parent of instructionText (usually the main container)
-//         instructionText.parentNode.insertBefore(controlsDiv, instructionText.nextSibling);
-//     }
-
-//     // 3. Clear old buttons
-//     controlsDiv.innerHTML = "";
-
-//     // 4. Create the 3 Buttons
-//     let btnRepeat = createButton("↺ Repeat", "#f59e0b", onRepeat); // Yellow/Orange
-//     let btnVideo  = createButton("🎥 Help", "#3b82f6", onVideo);   // Blue
-//     let btnNext   = createButton("✅ Next", "#22c55e", onNext);    // Green
-
-//     // 5. Add them
-//     controlsDiv.appendChild(btnRepeat);
-//     controlsDiv.appendChild(btnVideo);
-//     controlsDiv.appendChild(btnNext);
-// }
-
-// function createButton(text, color, onClick) {
-//     let btn = document.createElement("button");
-//     btn.innerText = text;
-    
-//     // STYLE
-//     btn.style.flex = "1"; // Equal width
-//     btn.style.padding = "15px";
-//     btn.style.border = "none";
-//     btn.style.borderRadius = "12px";
-//     btn.style.backgroundColor = color;
-//     btn.style.color = "white";
-//     btn.style.fontWeight = "bold";
-//     btn.style.fontSize = "16px";
-//     btn.style.cursor = "pointer";
-//     btn.style.boxShadow = "0 4px 6px rgba(0,0,0,0.1)";
-
-//     // CLICK HANDLER
-//     btn.onclick = (e) => {
-//         // Optional: specific animation or sound
-//         onClick();
-//     };
-    
-//     return btn;
-// }
-
-// function removeControls() {
-//     let controlsDiv = document.getElementById("solver-controls");
-//     if (controlsDiv) controlsDiv.remove();
-// }
-
-// function showVideoHelp(moveType) {
-//     alert("Video Help: " + moveType + "\n(You can add a video popup here later!)");
-// }
-
-// // --- HELPER FUNCTIONS FOR THE BUTTONS ---
-
-// function updateControls(onRepeat, onVideo, onNext) {
-//     // 1. Hide the main big button
-//     scanBtn.style.display = "none";
-
-//     // 2. Check if our custom controls exist, if not create them
-//     let controlsDiv = document.getElementById("solver-controls");
-//     if (!controlsDiv) {
-//         controlsDiv = document.createElement("div");
-//         controlsDiv.id = "solver-controls";
-//         controlsDiv.style.display = "flex";
-//         controlsDiv.style.gap = "10px";
-//         controlsDiv.style.marginTop = "10px";
-//         controlsDiv.style.justifyContent = "center";
-        
-//         // Insert below the instruction text
-//         instructionText.parentElement.appendChild(controlsDiv);
-//     }
-
-//     // 3. Clear old buttons
-//     controlsDiv.innerHTML = "";
-
-//     // 4. Create Button 1: REPEAT (Yellow)
-//     let btnRepeat = createButton("↺ Repeat", "orange", onRepeat);
-    
-//     // 5. Create Button 2: VIDEO (Blue)
-//     let btnVideo = createButton("🎥 Help", "blue", onVideo);
-
-//     // 6. Create Button 3: NEXT (Green)
-//     let btnNext = createButton("✅ Next", "green", onNext);
-
-//     // Append them
-//     controlsDiv.appendChild(btnRepeat);
-//     controlsDiv.appendChild(btnVideo);
-//     controlsDiv.appendChild(btnNext);
-// }
-
-// function createButton(text, color, onClick) {
-//     let btn = document.createElement("button");
-//     btn.innerText = text;
-//     btn.onclick = onClick;
-//     // Styling
-//     btn.className = "py-3 px-4 rounded-xl shadow-lg font-bold text-white flex-1";
-//     if (color === "green") btn.style.backgroundColor = "#16a34a"; // Green-600
-//     if (color === "blue") btn.style.backgroundColor = "#2563eb";  // Blue-600
-//     if (color === "orange") btn.style.backgroundColor = "#ea580c"; // Orange-600
-//     return btn;
-// }
-
-// function removeControls() {
-//     let controlsDiv = document.getElementById("solver-controls");
-//     if (controlsDiv) controlsDiv.remove();
-// }
-
-// // Placeholder for Video
-// function showVideoHelp(moveType) {
-//     // You can replace this later with actual video logic!
-//     alert("Play Video for: " + moveType + "\n(Video feature coming soon!)");
-// }
 //--------------------------------------------------------------
 
 
@@ -1063,24 +932,7 @@ function createCornerControls(onCase1, onCase2, onHelp, onRepeat, onNext) {
 }
 
 // Re-using your helper to ensure buttons look consistent
-function makeBtn(text, color, action) {
-    let btn = document.createElement("button");
-    btn.innerText = text;
-    btn.onclick = (e) => {
-        e.stopPropagation(); // Prevent clicking through
-        action();
-    };
-    btn.style.flex = "1"; 
-    btn.style.padding = "12px"; // Slightly smaller padding to fit 2 rows
-    btn.style.border = "none";
-    btn.style.borderRadius = "10px";
-    btn.style.backgroundColor = color;
-    btn.style.color = "white";
-    btn.style.fontWeight = "bold";
-    btn.style.fontSize = "14px";
-    btn.style.boxShadow = "0 4px 6px rgba(0,0,0,0.3)";
-    return btn;
-}
+
 
 
 
@@ -1155,20 +1007,17 @@ function startMiddleLayerInstruction() {
         // 3. HELP (Video)
         () => openVideo("YOUR_VIDEO_ID_HERE"),
 
-        // 4. REPEAT
-        () => speak(introText),
+        
+    // 4. REPEAT
+    () => speak(introText),
 
-        // 5. NEXT -> Start Layer 4 (Top Cross)
-        // In startMiddleLayerInstruction...
-
-    // 5. NEXT (SKIP SCAN -> GO TO YELLOW CROSS)
-    () => {
-        startYellowCrossSolver(); 
-    }
+    // 5. NEXT
+    () => startYellowCrossSolver()
 );
 
 
 
+}
 
 
 function showMiddleLayerOverlay() {
@@ -1259,31 +1108,7 @@ function removeMiddleLayerOverlay() {
 
 
 
-function startReScanForLayer3() {
-    // 1. Clean UI
-    removeMiddleLayerOverlay();
-    removeControls();
-    
-    // 2. Set Flags (We will use a new flag for Phase 3)
-    // Note: We need to define this flag at the top of main.js later
-    // isScanningForLayer3 = true; 
 
-    // 3. Setup Scanner Button
-    if (scanBtn) {
-        scanBtn.style.display = "block";
-        scanBtn.innerText = "SCAN FOR LAST LAYER";
-        scanBtn.className = "w-full bg-yellow-500 text-black font-bold py-4 rounded-xl shadow-lg";
-        
-        // Use a placeholder alert until we build the next step
-        scanBtn.onclick = () => {
-             alert("Scanning logic for Last Layer coming next!");
-             // Later we will link this to scanFace()
-        };
-    }
-
-    instructionText.innerText = "Layer 2 Done! Prepare to scan again.";
-    speak("Great job! You have solved the first two layers. Now we need to scan again to solve the final Yellow layer.");
-}
 
 
 
