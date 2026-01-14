@@ -789,6 +789,10 @@ function startCornersSolver() {
 
 // 2. STEP 2: SHOW IMAGES & INSTRUCTIONS
 // 2. STEP 2: SHOW IMAGES & INSTRUCTIONS
+
+
+
+
 function startCornersInstruction() {
     removeControls(); 
 
@@ -802,59 +806,56 @@ function startCornersInstruction() {
     
     let case2Text = "Case 2: White facing up. If a white sticker is facing up, Rotate the top so the sticker is directly Above a non white corner of the white bottom. Perform the right trigger twice. Now the sticker is facing outward, and you can solve it normally.";
 
-    // Combine for the main "Repeat" button
     let fullSpeechSequence = introText + " ... Unusual Situations ... " + case1Text + " ... " + case2Text;
 
     // --- C. SPEAK INSTRUCTIONS ---
     instructionText.innerText = "Tutorial: Triggers & Unusual Cases";
     speak(fullSpeechSequence);
 
-    // --- D. SHOW CONTROLS (NEW LAYOUT) ---
+    // --- D. SHOW CONTROLS ---
     createCornerControls(
-        // 1. CASE 1 ACTION
+        // 1. CASE 1
         () => speak(case1Text),
         
-        // 2. CASE 2 ACTION
+        // 2. CASE 2
         () => speak(case2Text),
 
-        // 3. HELP (Video)
+        // 3. HELP
         () => openVideo("YOUR_VIDEO_ID_HERE"),
 
-        // 4. REPEAT (Full Sequence)
+        // 4. REPEAT
         () => speak(fullSpeechSequence),
 
-        // 5. NEXT (Re-Scan)
-        () => startReScanForLayer2()
+        // 5. NEXT (SKIP SCAN -> GO TO LAYER 2)
+        () => {
+             // 👇 CHANGED THIS LINE: Go straight to Middle Layer
+            startMiddleLayerSolver();
+        }
     );
 }
-// --- RE-SCAN LOGIC ---
-function startReScanForLayer2() {
-    // 1. SET THE FLAG TO TRUE (Important!)
-    isScanningForLayer2 = true;
 
-    // 2. HIDE IMAGES / RESTORE GRID
-    removeTriggerOverlay();
-    
-    // 3. Cleanup UI
-    removeControls();
-    
-    if (scanBtn) {
-        scanBtn.style.display = "block";
-        scanBtn.innerText = "SCAN FRONT (GREEN)";
-        scanBtn.className = "w-full bg-yellow-500 text-black font-bold py-4 rounded-xl shadow-lg";
-    }
 
-    // 4. Reset Memory
-    currentSideIndex = 0;
-    scanOrder.forEach(side => cubeMap[side] = []);
 
-    // 5. Prompt User
-    instructionText.innerText = "Great! Let's check your work. Show Green Front.";
-    speak("Great job. Now I need to scan the cube again to help you with the next layer. Show me the Green Front.");
 
-    // 6. Link Button
-    scanBtn.onclick = scanFace; 
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 // --- NEW HELPER: TRIGGER OVERLAY ---
@@ -1066,7 +1067,7 @@ function startMiddleLayerInstruction() {
     showMiddleLayerOverlay(); 
 
     // --- B. DEFINE SPEECHES ---
-    let introText = "Strategy: Find an edge on the Top Layer that has NO Yellow colors. Match its front color to its center to make a upside down 'T' shape. Look at the top color of that piece.see wheather it matches the left center or right center. use your matched color side hand , and pull the top face towards you 90 degree, which will push it AWAY from that color's side. then do a  trigger move with the same hand. Tap the images to hear the Right vs Left moves.";
+    let introText = "Strategy: Find an edge on the Top Layer that has NO Yellow colors. Match its front color to its center to make a upside down 'T' shape. Look at the top color of that piece.see wheather it matches the left center or right center. use your matched color side hand , and pull the top face towards you 90 degree, which will push it AWAY from that color's side. then do a  trigger move with the same hand. Now you will see a white sticker from already solved bottom layer has been displaced. Follow the previous corner solve method to send the white sticker back . Tap the images to hear the Right vs Left moves.";
 
     let case1Text = "Case 1: Edge is Stuck. If an edge piece is stuck in the middle layer but in the wrong spot, hold it on the Right side and perform the Right Move once. This pops it out to the top layer so you can solve it.";
     
@@ -1153,7 +1154,9 @@ function showMiddleLayerOverlay() {
     
     imgRight.onclick = (e) => {
         e.stopPropagation();
-        speak("To Move Right: Push the Top to the Left (Away). Then perform the Right Trigger. Rotate the cube to face the white sticker. Then perform the Left Trigger to fix it.");
+        speak("To Move Right. First, push the Top layer away to the Left. " +
+            "Perform the Right Trigger. " +
+            "Now, perform the previous corner steps, to slot back in the displaced white sticker from bottom.");
     };
 
     // --- IMAGE 2: MOVE LEFT ---
@@ -1167,7 +1170,9 @@ function showMiddleLayerOverlay() {
 
     imgLeft.onclick = (e) => {
         e.stopPropagation();
-        speak("To Move Left: Push the Top to the Right (Away). Then perform the Left Trigger. Rotate the cube to face the white sticker. Then perform the Right Trigger to fix it.");
+        speak("To Move Left. First, push the Top layer away to the Right. " +
+            "Perform the Left Trigger. " +
+            "Now, perform the previous corner steps, to slot back in the displaced white sticker from bottom.");
     };
 
     imgContainer.appendChild(imgRight);
