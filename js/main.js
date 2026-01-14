@@ -501,27 +501,7 @@ function startCornersSolver() {
 // 2. STEP 2: THE INSTRUCTIONS & CONTROLS
 
 
-// --- RE-SCAN LOGIC ---
-function startReScanForLayer2() {
-    // 1. Cleanup UI
-    removeControls();
-    if (scanBtn) {
-        scanBtn.style.display = "block";
-        scanBtn.innerText = "SCAN FRONT (GREEN)";
-        scanBtn.className = "w-full bg-yellow-500 text-black font-bold py-4 rounded-xl shadow-lg";
-    }
 
-    // 2. Reset Scanning Memory
-    currentSideIndex = 0;
-    scanOrder.forEach(side => cubeMap[side] = []);
-
-    // 3. Prompt User
-    instructionText.innerText = "Great! Let's check your work. Show Green Front.";
-    speak("Great job. Now I need to scan the cube again to help you with the next layer. Show me the Green Front.");
-
-    // 4. Link Button to Scanner
-    scanBtn.onclick = scanFace; 
-}
 
 // --- VIDEO PLAYER LOGIC ---
 function openVideo(videoId) {
@@ -542,138 +522,140 @@ function closeVideo() {
     modal.style.display = "none";
 }
 
+
+//-------------------------------------------------------------------------
 // --- CONTROLS MANAGER (The 3 Buttons) ---
 
-function updateControls(onRepeat, onVideo, onNext) {
-    // 1. HIDE the old big button (Critical!)
-    if (scanBtn) scanBtn.style.display = "none";
+// function updateControls(onRepeat, onVideo, onNext) {
+//     // 1. HIDE the old big button (Critical!)
+//     if (scanBtn) scanBtn.style.display = "none";
 
-    // 2. Find or Create the Container
-    let controlsDiv = document.getElementById("solver-controls");
+//     // 2. Find or Create the Container
+//     let controlsDiv = document.getElementById("solver-controls");
     
-    // Safety check: if container missing, append it after instruction text
-    if (!controlsDiv) {
-        controlsDiv = document.createElement("div");
-        controlsDiv.id = "solver-controls";
-        controlsDiv.style.display = "flex";
-        controlsDiv.style.gap = "10px";
-        controlsDiv.style.marginTop = "15px";
-        controlsDiv.style.justifyContent = "center";
-        controlsDiv.style.width = "100%";
+//     // Safety check: if container missing, append it after instruction text
+//     if (!controlsDiv) {
+//         controlsDiv = document.createElement("div");
+//         controlsDiv.id = "solver-controls";
+//         controlsDiv.style.display = "flex";
+//         controlsDiv.style.gap = "10px";
+//         controlsDiv.style.marginTop = "15px";
+//         controlsDiv.style.justifyContent = "center";
+//         controlsDiv.style.width = "100%";
         
-        // Append to the parent of instructionText (usually the main container)
-        instructionText.parentNode.insertBefore(controlsDiv, instructionText.nextSibling);
-    }
+//         // Append to the parent of instructionText (usually the main container)
+//         instructionText.parentNode.insertBefore(controlsDiv, instructionText.nextSibling);
+//     }
 
-    // 3. Clear old buttons
-    controlsDiv.innerHTML = "";
+//     // 3. Clear old buttons
+//     controlsDiv.innerHTML = "";
 
-    // 4. Create the 3 Buttons
-    let btnRepeat = createButton("↺ Repeat", "#f59e0b", onRepeat); // Yellow/Orange
-    let btnVideo  = createButton("🎥 Help", "#3b82f6", onVideo);   // Blue
-    let btnNext   = createButton("✅ Next", "#22c55e", onNext);    // Green
+//     // 4. Create the 3 Buttons
+//     let btnRepeat = createButton("↺ Repeat", "#f59e0b", onRepeat); // Yellow/Orange
+//     let btnVideo  = createButton("🎥 Help", "#3b82f6", onVideo);   // Blue
+//     let btnNext   = createButton("✅ Next", "#22c55e", onNext);    // Green
 
-    // 5. Add them
-    controlsDiv.appendChild(btnRepeat);
-    controlsDiv.appendChild(btnVideo);
-    controlsDiv.appendChild(btnNext);
-}
+//     // 5. Add them
+//     controlsDiv.appendChild(btnRepeat);
+//     controlsDiv.appendChild(btnVideo);
+//     controlsDiv.appendChild(btnNext);
+// }
 
-function createButton(text, color, onClick) {
-    let btn = document.createElement("button");
-    btn.innerText = text;
+// function createButton(text, color, onClick) {
+//     let btn = document.createElement("button");
+//     btn.innerText = text;
     
-    // STYLE
-    btn.style.flex = "1"; // Equal width
-    btn.style.padding = "15px";
-    btn.style.border = "none";
-    btn.style.borderRadius = "12px";
-    btn.style.backgroundColor = color;
-    btn.style.color = "white";
-    btn.style.fontWeight = "bold";
-    btn.style.fontSize = "16px";
-    btn.style.cursor = "pointer";
-    btn.style.boxShadow = "0 4px 6px rgba(0,0,0,0.1)";
+//     // STYLE
+//     btn.style.flex = "1"; // Equal width
+//     btn.style.padding = "15px";
+//     btn.style.border = "none";
+//     btn.style.borderRadius = "12px";
+//     btn.style.backgroundColor = color;
+//     btn.style.color = "white";
+//     btn.style.fontWeight = "bold";
+//     btn.style.fontSize = "16px";
+//     btn.style.cursor = "pointer";
+//     btn.style.boxShadow = "0 4px 6px rgba(0,0,0,0.1)";
 
-    // CLICK HANDLER
-    btn.onclick = (e) => {
-        // Optional: specific animation or sound
-        onClick();
-    };
+//     // CLICK HANDLER
+//     btn.onclick = (e) => {
+//         // Optional: specific animation or sound
+//         onClick();
+//     };
     
-    return btn;
-}
+//     return btn;
+// }
 
-function removeControls() {
-    let controlsDiv = document.getElementById("solver-controls");
-    if (controlsDiv) controlsDiv.remove();
-}
+// function removeControls() {
+//     let controlsDiv = document.getElementById("solver-controls");
+//     if (controlsDiv) controlsDiv.remove();
+// }
 
-function showVideoHelp(moveType) {
-    alert("Video Help: " + moveType + "\n(You can add a video popup here later!)");
-}
+// function showVideoHelp(moveType) {
+//     alert("Video Help: " + moveType + "\n(You can add a video popup here later!)");
+// }
 
-// --- HELPER FUNCTIONS FOR THE BUTTONS ---
+// // --- HELPER FUNCTIONS FOR THE BUTTONS ---
 
-function updateControls(onRepeat, onVideo, onNext) {
-    // 1. Hide the main big button
-    scanBtn.style.display = "none";
+// function updateControls(onRepeat, onVideo, onNext) {
+//     // 1. Hide the main big button
+//     scanBtn.style.display = "none";
 
-    // 2. Check if our custom controls exist, if not create them
-    let controlsDiv = document.getElementById("solver-controls");
-    if (!controlsDiv) {
-        controlsDiv = document.createElement("div");
-        controlsDiv.id = "solver-controls";
-        controlsDiv.style.display = "flex";
-        controlsDiv.style.gap = "10px";
-        controlsDiv.style.marginTop = "10px";
-        controlsDiv.style.justifyContent = "center";
+//     // 2. Check if our custom controls exist, if not create them
+//     let controlsDiv = document.getElementById("solver-controls");
+//     if (!controlsDiv) {
+//         controlsDiv = document.createElement("div");
+//         controlsDiv.id = "solver-controls";
+//         controlsDiv.style.display = "flex";
+//         controlsDiv.style.gap = "10px";
+//         controlsDiv.style.marginTop = "10px";
+//         controlsDiv.style.justifyContent = "center";
         
-        // Insert below the instruction text
-        instructionText.parentElement.appendChild(controlsDiv);
-    }
+//         // Insert below the instruction text
+//         instructionText.parentElement.appendChild(controlsDiv);
+//     }
 
-    // 3. Clear old buttons
-    controlsDiv.innerHTML = "";
+//     // 3. Clear old buttons
+//     controlsDiv.innerHTML = "";
 
-    // 4. Create Button 1: REPEAT (Yellow)
-    let btnRepeat = createButton("↺ Repeat", "orange", onRepeat);
+//     // 4. Create Button 1: REPEAT (Yellow)
+//     let btnRepeat = createButton("↺ Repeat", "orange", onRepeat);
     
-    // 5. Create Button 2: VIDEO (Blue)
-    let btnVideo = createButton("🎥 Help", "blue", onVideo);
+//     // 5. Create Button 2: VIDEO (Blue)
+//     let btnVideo = createButton("🎥 Help", "blue", onVideo);
 
-    // 6. Create Button 3: NEXT (Green)
-    let btnNext = createButton("✅ Next", "green", onNext);
+//     // 6. Create Button 3: NEXT (Green)
+//     let btnNext = createButton("✅ Next", "green", onNext);
 
-    // Append them
-    controlsDiv.appendChild(btnRepeat);
-    controlsDiv.appendChild(btnVideo);
-    controlsDiv.appendChild(btnNext);
-}
+//     // Append them
+//     controlsDiv.appendChild(btnRepeat);
+//     controlsDiv.appendChild(btnVideo);
+//     controlsDiv.appendChild(btnNext);
+// }
 
-function createButton(text, color, onClick) {
-    let btn = document.createElement("button");
-    btn.innerText = text;
-    btn.onclick = onClick;
-    // Styling
-    btn.className = "py-3 px-4 rounded-xl shadow-lg font-bold text-white flex-1";
-    if (color === "green") btn.style.backgroundColor = "#16a34a"; // Green-600
-    if (color === "blue") btn.style.backgroundColor = "#2563eb";  // Blue-600
-    if (color === "orange") btn.style.backgroundColor = "#ea580c"; // Orange-600
-    return btn;
-}
+// function createButton(text, color, onClick) {
+//     let btn = document.createElement("button");
+//     btn.innerText = text;
+//     btn.onclick = onClick;
+//     // Styling
+//     btn.className = "py-3 px-4 rounded-xl shadow-lg font-bold text-white flex-1";
+//     if (color === "green") btn.style.backgroundColor = "#16a34a"; // Green-600
+//     if (color === "blue") btn.style.backgroundColor = "#2563eb";  // Blue-600
+//     if (color === "orange") btn.style.backgroundColor = "#ea580c"; // Orange-600
+//     return btn;
+// }
 
-function removeControls() {
-    let controlsDiv = document.getElementById("solver-controls");
-    if (controlsDiv) controlsDiv.remove();
-}
+// function removeControls() {
+//     let controlsDiv = document.getElementById("solver-controls");
+//     if (controlsDiv) controlsDiv.remove();
+// }
 
-// Placeholder for Video
-function showVideoHelp(moveType) {
-    // You can replace this later with actual video logic!
-    alert("Play Video for: " + moveType + "\n(Video feature coming soon!)");
-}
-
+// // Placeholder for Video
+// function showVideoHelp(moveType) {
+//     // You can replace this later with actual video logic!
+//     alert("Play Video for: " + moveType + "\n(Video feature coming soon!)");
+// }
+//--------------------------------------------------------------
 
 
 
