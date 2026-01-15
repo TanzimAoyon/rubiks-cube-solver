@@ -18,17 +18,22 @@ const colorCharMap = {
     'Orange': 'O', 'White': 'W', 'Yellow': 'Y'
 };
 
-// Reverse Map for Voice (Code -> Name)
-const codeToNameMap = {
-    'G': 'Green', 'R': 'Red', 'B': 'Blue', 
-    'O': 'Orange', 'W': 'White', 'Y': 'Yellow'
-};
-
 let currentSideIndex = 0;
 let cubeMap = { front: [], right: [], back: [], left: [], up: [], down: [] };
 let isScanning = false; 
 
-// --- 1. VOICE MANAGER ---
+// --- 1. HELPER: CONVERT CODE TO NAME (The Fix) ---
+function getColorName(code) {
+    if (code === 'G') return 'Green';
+    if (code === 'R') return 'Red';
+    if (code === 'B') return 'Blue';
+    if (code === 'O') return 'Orange';
+    if (code === 'W') return 'White';
+    if (code === 'Y') return 'Yellow';
+    return 'Unknown';
+}
+
+// --- 2. VOICE MANAGER ---
 function speak(text) {
     if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel(); 
@@ -37,7 +42,7 @@ function speak(text) {
     }
 }
 
-// --- 2. NAVIGATION ---
+// --- 3. NAVIGATION ---
 function goHome() {
     document.getElementById('home-screen').classList.remove('hidden'); 
     document.getElementById('home-screen').style.display = 'flex';
@@ -92,7 +97,7 @@ function jumpToStep(stepNumber) {
     else if (stepNumber === 6) startFinalSolve();
 }
 
-// --- 3. CAMERA & ORIGINAL HSV LOGIC ---
+// --- 4. CAMERA & HSV LOGIC ---
 async function startCamera() {
     try {
         if (video.srcObject) return;
@@ -132,14 +137,13 @@ function rgbToHsv(r, g, b) {
     return [h * 360, s * 100, v * 100];
 }
 
-// THE ORIGINAL, WORKING COLOR BRAIN
 function detectColor(r, g, b) {
     const [h, s, v] = rgbToHsv(r, g, b);
 
-    // 1. WHITE: Low Saturation, High Brightness
+    // 1. WHITE Check
     if (s < 25 && v > 45) return 'W'; 
 
-    // 2. COLORS: Standard Hue Ranges
+    // 2. COLORS
     if (h >= 0 && h < 15) return 'R'; 
     if (h >= 345 && h <= 360) return 'R'; 
     
@@ -151,7 +155,7 @@ function detectColor(r, g, b) {
     return 'W'; // Fallback
 }
 
-// --- 4. ROBUST SCANNER LOGIC ---
+// --- 5. SCANNER LOGIC ---
 
 function scanFace() {
     if (!video.srcObject || isScanning) return;
@@ -167,7 +171,7 @@ function scanFace() {
     const width = canvas.width;
     const height = canvas.height;
     
-    // SAFE TIGHT SCAN (Width / 6.5) - Allows holding camera further back
+    // SAFE TIGHT SCAN (Width / 6.5)
     const gap = Math.min(width, height) / 6.5; 
     const centerX = width / 2;
     const centerY = height / 2;
@@ -190,8 +194,8 @@ function scanFace() {
     const expectedColorName = sideColors[expectedSideName]; 
     const expectedCode = colorCharMap[expectedColorName]; 
     
-    // Get full name of what we saw (e.g. "Green" instead of "G")
-    const seenColorName = codeToNameMap[centerColorCode] || "Unknown";
+    // FIX: Convert "O" to "Orange" for speech
+    const seenColorName = getColorName(centerColorCode); 
 
     // Check Correctness
     let isWrong = (centerColorCode !== expectedCode);
@@ -206,7 +210,7 @@ function scanFace() {
         instructionText.innerText = `❌ Wrong! Saw ${seenColorName}, need ${expectedColorName}.`;
         instructionText.style.color = "red";
         
-        // FIX 1: Speak the full color name
+        // FIX: Speak the full name
         speak(`Wrong side. I see ${seenColorName}. Please show ${expectedColorName}.`);
         
         // Reset Button
@@ -238,19 +242,18 @@ function scanFace() {
         // DONE SCANNING
         isScanning = false;
         
-        // FIX 2: Better Daisy Feedback
+        // DAISY CHECK (Bottom Face)
         if (isDaisySolved(cubeMap)) {
             // SUCCESS
             speak("Great! Daisy found. Moving to White Cross.");
             instructionText.innerText = "Great! Daisy Found! ✅";
             
-            // Wait 2 seconds so they can hear "Great" before screen changes
             setTimeout(() => {
                 startWhiteCross();
             }, 2000);
             
         } else {
-            // FAILURE - Explain HOW
+            // FAILURE
             instructionText.innerText = "Daisy Not Found. Let's make one.";
             speak("Daisy not found. Please make a daisy. Keep the yellow block in the center, and four white petals around it.");
             
@@ -261,7 +264,7 @@ function scanFace() {
 }
 
 // =========================================================
-// --- 5. SOLVER LOGIC ---
+// --- 6. SOLVER LOGIC ---
 // =========================================================
 
 function isDaisySolved(map) {
