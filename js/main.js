@@ -209,32 +209,67 @@ function scanFace() {
     showPreview(currentScan);
 }
 
+
+
+function retakeScan() {
+    document.getElementById('preview-overlay').style.display = 'none';
+    if (scanBtn) scanBtn.style.display = 'block';
+}
+
+
+
+
 function showPreview(colors) {
     const overlay = document.getElementById('preview-overlay');
     const grid = document.getElementById('detected-colors-grid');
     
-    // Safety check
-    if (!overlay || !grid) return;
+    // Safety Check: If HTML is missing, stop here
+    if (!overlay || !grid) {
+        console.error("Popup HTML missing!");
+        // Force button back so you aren't stuck
+        if (scanBtn) scanBtn.style.display = 'block'; 
+        return;
+    }
 
     grid.innerHTML = ''; 
     window.tempColors = colors; 
     
+    // Visual Map
     const hexMap = {'W':'white', 'Y':'#facc15', 'R':'#ef4444', 'O':'#f97316', 'G':'#22c55e', 'B':'#3b82f6'};
     
     colors.forEach(code => {
         let div = document.createElement('div');
         div.className = 'detected-cell';
         div.style.backgroundColor = hexMap[code] || '#ccc';
+        div.style.border = "1px solid #333";
         grid.appendChild(div);
     });
     
+    // Reveal the popup
     overlay.style.display = 'block';
 }
 
-function retakeScan() {
-    document.getElementById('preview-overlay').style.display = 'none';
-    if (scanBtn) scanBtn.style.display = 'block';
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function confirmScan() {
     // 1. Hide Popup

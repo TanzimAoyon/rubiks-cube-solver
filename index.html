@@ -12,7 +12,7 @@
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css" />
   </head>
 
   <body>
@@ -92,13 +92,18 @@
         <video id="video" autoplay playsinline></video>
         <canvas id="canvas"></canvas>
 
-    <div id="scan-frame">
-        <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
-        <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
-        <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
-    </div>
-      
-
+        <div id="scan-frame">
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+        </div>
+      </div>
       <div class="controls">
         <button id="scan-btn">SCAN SIDE</button>
       </div>
@@ -107,10 +112,28 @@
         <h3>Is this correct?</h3>
         <div id="detected-colors-grid"></div>
         <div class="preview-buttons">
-          <button onclick="retakeScan()" style="background: #ef4444">
+          <button
+            onclick="retakeScan()"
+            style="
+              background: #ef4444;
+              color: white;
+              padding: 10px;
+              border: none;
+              border-radius: 5px;
+            "
+          >
             Retake
           </button>
-          <button onclick="confirmScan()" style="background: #22c55e">
+          <button
+            onclick="confirmScan()"
+            style="
+              background: #22c55e;
+              color: white;
+              padding: 10px;
+              border: none;
+              border-radius: 5px;
+            "
+          >
             Confirm
           </button>
         </div>
