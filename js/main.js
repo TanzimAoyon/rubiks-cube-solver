@@ -147,13 +147,15 @@ function detectColor(r, g, b) {
 
 // --- 4. ROBUST SCANNER LOGIC ---
 
+// --- 4. ROBUST SCANNER LOGIC (Fixed for White Borders) ---
+
 function scanFace() {
     if (!video.srcObject || isScanning) return;
     
-    isScanning = true; // Block button spam
-    scanBtn.innerText = "Scanning..."; // Visual Feedback
+    isScanning = true; 
+    scanBtn.innerText = "Scanning..."; 
 
-    // 1. Capture
+    // 1. Capture High Res Image
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0);
@@ -161,25 +163,32 @@ function scanFace() {
     const width = canvas.width;
     const height = canvas.height;
     
-    // SAFE TIGHT SCAN (Width / 12)
-    // Closer to center to avoid borders, but not too small
-    const gap = width / 12; 
+    // --- THE GEOMETRY FIX ---
+    // Previous code: gap = width / 12 (Spread out)
+    // New code: gap = height / 6 (Much tighter)
+    // This bunches the 9 points in the dead center of the screen.
+    // YOU CAN NOW HOLD THE CAMERA FURTHER AWAY.
+    
+    const gap = Math.min(width, height) / 6.5; 
     const centerX = width / 2;
     const centerY = height / 2;
 
     let currentScan = [];
     
+    // Scan the 9 points
     for (let row = -1; row <= 1; row++) {
         for (let col = -1; col <= 1; col++) {
+            // Math to find the exact center of each sticker
             let x = centerX + (col * gap);
             let y = centerY + (row * gap);
+            
             const pixel = ctx.getImageData(x, y, 1, 1).data;
             const colorCode = detectColor(pixel[0], pixel[1], pixel[2]);
             currentScan.push(colorCode);
         }
     }
 
-    // --- STRICT VALIDATION ---
+    // --- STRICT VALIDATION (Blocks mistakes) ---
     const centerColorCode = currentScan[4]; // Center sticker
     const expectedSideName = scanOrder[currentSideIndex]; 
     const expectedColorName = sideColors[expectedSideName]; 
@@ -188,18 +197,18 @@ function scanFace() {
     // Check Correctness
     let isWrong = (centerColorCode !== expectedCode);
 
-    // Allow Red/Orange Swap (Common Camera Issue)
+    // Exception: Red/Orange look alike to cameras, let them pass
     if ((centerColorCode === 'R' && expectedCode === 'O') || (centerColorCode === 'O' && expectedCode === 'R')) {
         isWrong = false;
     }
 
     if (isWrong) {
-        // FAIL STATE
+        // FAIL: Wrong color found
         instructionText.innerText = `❌ Wrong! Saw ${centerColorCode}, need ${expectedColorName}.`;
         instructionText.style.color = "red";
         speak(`Wrong side. I see ${centerColorCode}. Please show ${expectedColorName}.`);
         
-        // Reset Button
+        // Reset Button so you can try again
         setTimeout(() => {
             isScanning = false;
             scanBtn.innerText = "TRY AGAIN";
@@ -207,7 +216,7 @@ function scanFace() {
         return; 
     }
 
-    // --- SUCCESS STATE ---
+    // --- SUCCESS: Save and Continue ---
     instructionText.style.color = "white"; 
     cubeMap[expectedSideName] = currentScan;
     
@@ -221,15 +230,13 @@ function scanFace() {
         instructionText.innerText = `Saved ${expectedColorName}. Show ${nextColor} center.`;
         speak(`Saved. Now show ${nextColor}.`);
         
-        // Reset Button Immediately
         isScanning = false;
         scanBtn.innerText = "SCAN SIDE";
         
     } else {
-        // DONE SCANNING
+        // DONE
         isScanning = false;
         
-        // Check Daisy (Bottom Face Logic)
         if (isDaisySolved(cubeMap)) {
             speak("Scanning done. Daisy found! Moving to White Cross.");
             startWhiteCross(); 
