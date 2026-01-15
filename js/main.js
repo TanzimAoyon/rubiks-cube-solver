@@ -11,7 +11,7 @@ const sideColors = {
     'front': 'Green', 'right': 'Red', 'back': 'Blue', 
     'left': 'Orange', 'up': 'White', 'down': 'Yellow' 
 };
-// Map for validation
+// Map for Strict Validation
 const colorCharMap = {
     'Green': 'G', 'Red': 'R', 'Blue': 'B', 
     'Orange': 'O', 'White': 'W', 'Yellow': 'Y'
@@ -51,7 +51,6 @@ function enterMainApp() {
     // RESET SCANNER
     currentSideIndex = 0;
     instructionText.innerText = "Show Green Center, then Scan.";
-    instructionText.style.color = "white";
     speak("Show Green Center, then Scan.");
     
     if(scanBtn) {
@@ -108,6 +107,7 @@ function stopCamera() {
     }
 }
 
+// --- THE ORIGINAL HSV VISION SYSTEM ---
 function rgbToHsv(r, g, b) {
     r /= 255, g /= 255, b /= 255;
     let max = Math.max(r, g, b), min = Math.min(r, g, b);
@@ -128,27 +128,29 @@ function rgbToHsv(r, g, b) {
 
 function detectColor(r, g, b) {
     const [h, s, v] = rgbToHsv(r, g, b);
-    
-    // 1. WHITE Check (Tuned for better Yellow/White separation)
-    // Saturation must be VERY low for white
+
+    // 1. WHITE: Strict Low Saturation
     if (s < 25 && v > 45) return 'W'; 
 
-    // 2. Color checks
-    if (h >= 0 && h < 15) return 'R';   
-    if (h >= 335 && h <= 360) return 'R'; 
-    if (h >= 15 && h < 50) return 'O';  
-    if (h >= 50 && h < 85) return 'Y';  // Expanded Yellow range slightly
-    if (h >= 85 && h < 160) return 'G'; 
-    if (h >= 160 && h < 265) return 'B'; 
-    return 'W'; 
+    // 2. COLORS: Based on Hue (0-360)
+    // Red wraps around 0/360
+    if (h >= 0 && h < 10) return 'R'; 
+    if (h >= 340 && h <= 360) return 'R'; 
+    
+    if (h >= 10 && h < 45) return 'O'; 
+    if (h >= 45 && h < 75) return 'Y'; 
+    if (h >= 75 && h < 155) return 'G'; 
+    if (h >= 155 && h < 260) return 'B'; 
+    
+    return 'W'; // Fallback
 }
 
-// --- 4. SCANNER LOGIC (With Validation) ---
+// --- 4. SCANNER LOGIC (Strict Guard Restored) ---
 
 function scanFace() {
     if (!video.srcObject) return;
     
-    // 1. Capture & Setup
+    // 1. Capture
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0);
@@ -156,73 +158,78 @@ function scanFace() {
     const width = canvas.width;
     const height = canvas.height;
     
-    // TIGHT SCAN MATH (Fixes White Borders)
-    const gap = width / 14; 
+    // --- WHITE BORDER FIX: TIGHTER SCANNING ---
+    // Standard is /10. We use /13 to pinch the points closer to the center.
+    // This avoids hitting the white border of your stickers.
+    const gap = width / 13; 
     const centerX = width / 2;
     const centerY = height / 2;
 
     let currentScan = [];
     
-    // 2. Scan Pixels
     for (let row = -1; row <= 1; row++) {
         for (let col = -1; col <= 1; col++) {
+            // Find pixel location
             let x = centerX + (col * gap);
             let y = centerY + (row * gap);
+            
+            // Get Color
             const pixel = ctx.getImageData(x, y, 1, 1).data;
             const colorCode = detectColor(pixel[0], pixel[1], pixel[2]);
             currentScan.push(colorCode);
         }
     }
 
-    // --- 3. VALIDATION (The "Wrong Color" Fix) ---
-    // Check the Center Sticker (Index 4)
-    let centerColorCode = currentScan[4]; 
-    let expectedSide = scanOrder[currentSideIndex]; // e.g., 'front'
-    let expectedName = sideColors[expectedSide];    // e.g., 'Green'
-    let expectedCode = colorCharMap[expectedName];  // e.g., 'G'
-
-    // Allow Red/Orange mixups because they look similar, block others
-    let isWrong = false;
-    if (centerColorCode !== expectedCode) {
-        // Exception: Allow Red 'R' and Orange 'O' to pass for each other
-        if (!((centerColorCode === 'R' && expectedCode === 'O') || (centerColorCode === 'O' && expectedCode === 'R'))) {
-            isWrong = true;
-        }
-    }
-
-    if (isWrong) {
-        instructionText.innerText = `❌ Wrong Side! I see ${centerColorCode}, need ${expectedName}.`;
-        instructionText.style.color = "red";
-        speak(`Wrong side. Please show the ${expectedName} side.`);
-        return; // STOP HERE! Do not save.
-    }
-
-    // --- 4. SAVE (If validation passed) ---
-    instructionText.style.color = "white"; // Reset text color
-    cubeMap[expectedSide] = currentScan;
+    // --- STRICT VALIDATION (RESTORED) ---
+    // This checks if you are showing the correct side.
     
-    // 5. Advance
+    const centerColorCode = currentScan[4]; // Center sticker
+    const expectedSideName = scanOrder[currentSideIndex]; // e.g., 'front'
+    const expectedColorName = sideColors[expectedSideName]; // e.g., 'Green'
+    const expectedCode = colorCharMap[expectedColorName];   // e.g., 'G'
+
+    // Check: Is the center correct?
+    let isWrong = (centerColorCode !== expectedCode);
+
+    // Exception: Allow Red/Orange confusion because cameras struggle with it
+    if ((centerColorCode === 'R' && expectedCode === 'O') || (centerColorCode === 'O' && expectedCode === 'R')) {
+        isWrong = false;
+    }
+
+    // BLOCKING LOGIC
+    if (isWrong) {
+        instructionText.innerText = `❌ Wrong! I see ${centerColorCode}, need ${expectedName}.`;
+        instructionText.style.color = "red";
+        speak(`Wrong side. I see ${centerColorCode}. Please show the ${expectedName} side.`);
+        
+        // WE RETURN HERE. It will NOT save. It forces you to retry.
+        return; 
+    }
+
+    // --- SAVE AND CONTINUE (Only if Correct) ---
+    instructionText.style.color = "white"; 
+    cubeMap[expectedSideName] = currentScan;
+    
     currentSideIndex++;
     
-    // 6. CHECK PROGRESS
     if (currentSideIndex < scanOrder.length) {
         // NEXT SIDE
         let nextSide = scanOrder[currentSideIndex];
         let nextColor = sideColors[nextSide];
         
-        instructionText.innerText = `Saved ${expectedName}. Show ${nextColor} center.`;
+        instructionText.innerText = `Saved ${expectedColorName}. Show ${nextColor} center.`;
         speak(`Saved. Now show ${nextColor}.`);
         
     } else {
         // --- DONE SCANNING ---
-        // 1. Check Daisy Immediately
+        
+        // CHECK DAISY (Daisy is on Down/Yellow face)
         if (isDaisySolved(cubeMap)) {
             speak("Scanning done. Daisy found! Moving to White Cross.");
             startWhiteCross(); 
         } else {
-            // 2. Daisy Not Found -> Instruction Mode
             instructionText.innerText = "Scanning Complete! Let's make the Daisy.";
-            speak("Scanning complete. Daisy not found. Please make a Daisy.");
+            speak("Scanning complete. Let's make the Daisy.");
             
             scanBtn.innerText = "START DAISY";
             scanBtn.onclick = startDaisySolver;
@@ -244,9 +251,9 @@ function getFaceName(letter) {
 
 // --- PHASE 1: DAISY ---
 function startDaisySolver() {
-    // Check again just in case
+    // Smart Check
     if (isDaisySolved(cubeMap)) {
-        speak("Daisy found! Moving to White Cross.");
+        speak("Daisy is perfect! Moving to White Cross.");
         startWhiteCross();
         return;
     }
@@ -260,7 +267,7 @@ function startDaisySolver() {
     scanBtn.className = "w-full bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg"; 
     
     scanBtn.onclick = () => {
-        // RESET FOR RE-SCAN
+        // Reset Logic
         currentSideIndex = 0;
         scanOrder.forEach(side => cubeMap[side] = []);
         enterMainApp(); 
@@ -578,12 +585,16 @@ function makeBtn(text, color, action) {
 
 function openVideo(videoId) { alert("Video placeholder"); }
 
-// --- MATH LOGIC (Fixed Daisy Check) ---
+// --- MATH LOGIC ---
+// FIX: Daisy is on the BOTTOM (Down face), not Top!
 function isDaisySolved(map) {
-    let up = map.up;
-    if (!up || up.length < 9) return false;
-    // Check Yellow Center (4) + White Edges (1,3,5,7)
-    return (up[4] === 'Y' && up[1] === 'W' && up[3] === 'W' && up[5] === 'W' && up[7] === 'W');
+    let down = map.down; 
+    if (!down || down.length < 9) return false;
+
+    const isYellowCenter = (down[4] === 'Y');
+    const hasWhitePetals = (down[1] === 'W' && down[3] === 'W' && down[5] === 'W' && down[7] === 'W');
+    
+    return isYellowCenter && hasWhitePetals;
 }
 
 function isCubeSolved(map) { return false; }
