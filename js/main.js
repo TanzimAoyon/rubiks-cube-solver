@@ -301,46 +301,88 @@ function startDaisySolver() {
 }
 
 // --- PHASE 1.5: WHITE CROSS ---
+
+
+
+
+// --- PHASE 1.5: WHITE CROSS (DAISY -> CROSS) ---
 function startWhiteCross() {
     try {
         if (typeof getCrossMove !== "function") throw new Error("Missing getCrossMove");
+        
+        // 1. Ask the Brain for the next move
         let move = getCrossMove(cubeMap);
         
+        // 2. Handle "Done" State
         if (move === "DONE") {
-            speak("Cross completed! Proceeding to corners.");
+            speak("Cross completed! Great job. Proceeding to corners.");
             instructionText.innerText = "Cross Done! ✅";
             scanBtn.innerText = "NEXT: CORNERS";
             scanBtn.onclick = startCornersSolver; 
             return;
         }
 
-        if (move === "Check Middle Layer") {
-             speak("I cannot find a white petal on top. Please check your Daisy.");
-             instructionText.innerText = "⚠️ Check Daisy";
-             return;
-        }
-
-        if (move === "D") {
-            speak("Rotate the Yellow Top. Match petal side color to center.");
-        } else if (move.includes("2")) {
+        // 3. Handle "Rotate Top" (Searching for match)
+        if (move === "U") {
+            instructionText.innerText = "Rotate Top 🔄 (Finding Match)";
+            speak("Rotate the Yellow Top Clockwise once. Then tap Next.");
+        } 
+        // 4. Handle "Turn 2 Times" (Match Found!)
+        else if (move.includes("2")) {
             let faceLetter = move[0];
-            let colorName = (faceLetter === 'F') ? "Green" : (faceLetter === 'R' ? "Red" : (faceLetter === 'L' ? "Orange" : "Blue"));
-            speak(`Match found! Turn the ${colorName} face two times.`);
-        } else {
-             speak(`Perform move ${move}`);
-        }
-
-        if (typeof virtualMove !== "function") throw new Error("Missing virtualMove");
+            let colorName = "";
+            
+            if (faceLetter === 'F') colorName = "Green";
+            if (faceLetter === 'R') colorName = "Red";
+            if (faceLetter === 'L') colorName = "Orange";
+            if (faceLetter === 'B') colorName = "Blue";
+            
+            instructionText.innerText = `Match! Turn ${colorName} 2x`;
+            speak(`Match found on ${colorName}! Turn the ${colorName} face two times to bring the white petal down.`);
+        } 
+        
+        // 5. Update Memory (CRITICAL!)
+        // We tell the app "The user did this move, update your mental map."
         virtualMove(move, cubeMap);
 
-        scanBtn.innerText = "I DID IT (Next)";
+        // 6. Setup button for the next step
+        scanBtn.innerText = "I DID IT (NEXT MOVE)";
+        scanBtn.disabled = false;
         scanBtn.onclick = startWhiteCross;
 
     } catch (error) {
         console.error(error);
-        instructionText.innerText = "ERROR: " + error.message;
+        instructionText.innerText = "Logic Error: " + error.message;
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // --- PHASE 2: CORNERS ---
 function startCornersSolver() {
