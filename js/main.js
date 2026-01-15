@@ -12,15 +12,21 @@ const sideColors = {
     'left': 'Orange', 'up': 'White', 'down': 'Yellow' 
 };
 
-// Strict Validation Map
+// Strict Validation Map (Name -> Code)
 const colorCharMap = {
     'Green': 'G', 'Red': 'R', 'Blue': 'B', 
     'Orange': 'O', 'White': 'W', 'Yellow': 'Y'
 };
 
+// Reverse Map for Voice (Code -> Name)
+const codeToNameMap = {
+    'G': 'Green', 'R': 'Red', 'B': 'Blue', 
+    'O': 'Orange', 'W': 'White', 'Y': 'Yellow'
+};
+
 let currentSideIndex = 0;
 let cubeMap = { front: [], right: [], back: [], left: [], up: [], down: [] };
-let isScanning = false; // Prevents double-clicking
+let isScanning = false; 
 
 // --- 1. VOICE MANAGER ---
 function speak(text) {
@@ -147,15 +153,13 @@ function detectColor(r, g, b) {
 
 // --- 4. ROBUST SCANNER LOGIC ---
 
-// --- 4. ROBUST SCANNER LOGIC (Fixed for White Borders) ---
-
 function scanFace() {
     if (!video.srcObject || isScanning) return;
     
     isScanning = true; 
     scanBtn.innerText = "Scanning..."; 
 
-    // 1. Capture High Res Image
+    // 1. Capture
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0);
@@ -163,52 +167,49 @@ function scanFace() {
     const width = canvas.width;
     const height = canvas.height;
     
-    // --- THE GEOMETRY FIX ---
-    // Previous code: gap = width / 12 (Spread out)
-    // New code: gap = height / 6 (Much tighter)
-    // This bunches the 9 points in the dead center of the screen.
-    // YOU CAN NOW HOLD THE CAMERA FURTHER AWAY.
-    
+    // SAFE TIGHT SCAN (Width / 6.5) - Allows holding camera further back
     const gap = Math.min(width, height) / 6.5; 
     const centerX = width / 2;
     const centerY = height / 2;
 
     let currentScan = [];
     
-    // Scan the 9 points
     for (let row = -1; row <= 1; row++) {
         for (let col = -1; col <= 1; col++) {
-            // Math to find the exact center of each sticker
             let x = centerX + (col * gap);
             let y = centerY + (row * gap);
-            
             const pixel = ctx.getImageData(x, y, 1, 1).data;
             const colorCode = detectColor(pixel[0], pixel[1], pixel[2]);
             currentScan.push(colorCode);
         }
     }
 
-    // --- STRICT VALIDATION (Blocks mistakes) ---
-    const centerColorCode = currentScan[4]; // Center sticker
+    // --- STRICT VALIDATION ---
+    const centerColorCode = currentScan[4]; 
     const expectedSideName = scanOrder[currentSideIndex]; 
     const expectedColorName = sideColors[expectedSideName]; 
     const expectedCode = colorCharMap[expectedColorName]; 
+    
+    // Get full name of what we saw (e.g. "Green" instead of "G")
+    const seenColorName = codeToNameMap[centerColorCode] || "Unknown";
 
     // Check Correctness
     let isWrong = (centerColorCode !== expectedCode);
 
-    // Exception: Red/Orange look alike to cameras, let them pass
+    // Allow Red/Orange Swap
     if ((centerColorCode === 'R' && expectedCode === 'O') || (centerColorCode === 'O' && expectedCode === 'R')) {
         isWrong = false;
     }
 
     if (isWrong) {
-        // FAIL: Wrong color found
-        instructionText.innerText = `❌ Wrong! Saw ${centerColorCode}, need ${expectedColorName}.`;
+        // FAIL STATE
+        instructionText.innerText = `❌ Wrong! Saw ${seenColorName}, need ${expectedColorName}.`;
         instructionText.style.color = "red";
-        speak(`Wrong side. I see ${centerColorCode}. Please show ${expectedColorName}.`);
         
-        // Reset Button so you can try again
+        // FIX 1: Speak the full color name
+        speak(`Wrong side. I see ${seenColorName}. Please show ${expectedColorName}.`);
+        
+        // Reset Button
         setTimeout(() => {
             isScanning = false;
             scanBtn.innerText = "TRY AGAIN";
@@ -216,7 +217,7 @@ function scanFace() {
         return; 
     }
 
-    // --- SUCCESS: Save and Continue ---
+    // --- SUCCESS STATE ---
     instructionText.style.color = "white"; 
     cubeMap[expectedSideName] = currentScan;
     
@@ -234,15 +235,24 @@ function scanFace() {
         scanBtn.innerText = "SCAN SIDE";
         
     } else {
-        // DONE
+        // DONE SCANNING
         isScanning = false;
         
+        // FIX 2: Better Daisy Feedback
         if (isDaisySolved(cubeMap)) {
-            speak("Scanning done. Daisy found! Moving to White Cross.");
-            startWhiteCross(); 
+            // SUCCESS
+            speak("Great! Daisy found. Moving to White Cross.");
+            instructionText.innerText = "Great! Daisy Found! ✅";
+            
+            // Wait 2 seconds so they can hear "Great" before screen changes
+            setTimeout(() => {
+                startWhiteCross();
+            }, 2000);
+            
         } else {
-            instructionText.innerText = "Scanning Complete! Let's make the Daisy.";
-            speak("Scanning complete. Let's make the Daisy.");
+            // FAILURE - Explain HOW
+            instructionText.innerText = "Daisy Not Found. Let's make one.";
+            speak("Daisy not found. Please make a daisy. Keep the yellow block in the center, and four white petals around it.");
             
             scanBtn.innerText = "START DAISY";
             scanBtn.onclick = startDaisySolver;
@@ -255,12 +265,9 @@ function scanFace() {
 // =========================================================
 
 function isDaisySolved(map) {
-    // Daisy is on DOWN (Yellow) face in scan order
     let down = map.down; 
     if (!down || down.length < 9) return false;
 
-    // Center must be Yellow (Index 4)
-    // Petals must be White (1, 3, 5, 7)
     const isYellowCenter = (down[4] === 'Y');
     const hasWhitePetals = (down[1] === 'W' && down[3] === 'W' && down[5] === 'W' && down[7] === 'W');
     
@@ -283,7 +290,6 @@ function startDaisySolver() {
     scanBtn.innerText = "I DID IT -> RE-SCAN";
     scanBtn.className = "w-full bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg"; 
     
-    // UNBIND previous click, BIND new re-scan logic
     scanBtn.onclick = () => {
         currentSideIndex = 0;
         scanOrder.forEach(side => cubeMap[side] = []);
