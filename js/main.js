@@ -11,7 +11,8 @@ const sideColors = {
     'front': 'Green', 'right': 'Red', 'back': 'Blue', 
     'left': 'Orange', 'up': 'White', 'down': 'Yellow' 
 };
-// Map for Strict Validation
+
+// Strict Validation Map
 const colorCharMap = {
     'Green': 'G', 'Red': 'R', 'Blue': 'B', 
     'Orange': 'O', 'White': 'W', 'Yellow': 'Y'
@@ -19,9 +20,7 @@ const colorCharMap = {
 
 let currentSideIndex = 0;
 let cubeMap = { front: [], right: [], back: [], left: [], up: [], down: [] };
-
-// Flags
-let hasFlippedForCross = false;
+let isScanning = false; // Prevents double-clicking
 
 // --- 1. VOICE MANAGER ---
 function speak(text) {
@@ -51,11 +50,13 @@ function enterMainApp() {
     // RESET SCANNER
     currentSideIndex = 0;
     instructionText.innerText = "Show Green Center, then Scan.";
+    instructionText.style.color = "white";
     speak("Show Green Center, then Scan.");
     
     if(scanBtn) {
         scanBtn.style.display = "block";
         scanBtn.innerText = "SCAN SIDE";
+        scanBtn.disabled = false;
         scanBtn.onclick = scanFace; 
     }
     
@@ -85,7 +86,7 @@ function jumpToStep(stepNumber) {
     else if (stepNumber === 6) startFinalSolve();
 }
 
-// --- 3. CAMERA & COLORS ---
+// --- 3. CAMERA & ORIGINAL HSV LOGIC ---
 async function startCamera() {
     try {
         if (video.srcObject) return;
@@ -107,7 +108,6 @@ function stopCamera() {
     }
 }
 
-// --- THE ORIGINAL HSV VISION SYSTEM ---
 function rgbToHsv(r, g, b) {
     r /= 255, g /= 255, b /= 255;
     let max = Math.max(r, g, b), min = Math.min(r, g, b);
@@ -126,30 +126,33 @@ function rgbToHsv(r, g, b) {
     return [h * 360, s * 100, v * 100];
 }
 
+// THE ORIGINAL, WORKING COLOR BRAIN
 function detectColor(r, g, b) {
     const [h, s, v] = rgbToHsv(r, g, b);
 
-    // 1. WHITE: Strict Low Saturation
+    // 1. WHITE: Low Saturation, High Brightness
     if (s < 25 && v > 45) return 'W'; 
 
-    // 2. COLORS: Based on Hue (0-360)
-    // Red wraps around 0/360
-    if (h >= 0 && h < 10) return 'R'; 
-    if (h >= 340 && h <= 360) return 'R'; 
+    // 2. COLORS: Standard Hue Ranges
+    if (h >= 0 && h < 15) return 'R'; 
+    if (h >= 345 && h <= 360) return 'R'; 
     
-    if (h >= 10 && h < 45) return 'O'; 
-    if (h >= 45 && h < 75) return 'Y'; 
-    if (h >= 75 && h < 155) return 'G'; 
-    if (h >= 155 && h < 260) return 'B'; 
+    if (h >= 15 && h < 45) return 'O'; 
+    if (h >= 45 && h < 85) return 'Y'; 
+    if (h >= 85 && h < 160) return 'G'; 
+    if (h >= 160 && h < 265) return 'B'; 
     
     return 'W'; // Fallback
 }
 
-// --- 4. SCANNER LOGIC (Strict Guard Restored) ---
+// --- 4. ROBUST SCANNER LOGIC ---
 
 function scanFace() {
-    if (!video.srcObject) return;
+    if (!video.srcObject || isScanning) return;
     
+    isScanning = true; // Block button spam
+    scanBtn.innerText = "Scanning..."; // Visual Feedback
+
     // 1. Capture
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -158,10 +161,9 @@ function scanFace() {
     const width = canvas.width;
     const height = canvas.height;
     
-    // --- WHITE BORDER FIX: TIGHTER SCANNING ---
-    // Standard is /10. We use /13 to pinch the points closer to the center.
-    // This avoids hitting the white border of your stickers.
-    const gap = width / 13; 
+    // SAFE TIGHT SCAN (Width / 12)
+    // Closer to center to avoid borders, but not too small
+    const gap = width / 12; 
     const centerX = width / 2;
     const centerY = height / 2;
 
@@ -169,61 +171,65 @@ function scanFace() {
     
     for (let row = -1; row <= 1; row++) {
         for (let col = -1; col <= 1; col++) {
-            // Find pixel location
             let x = centerX + (col * gap);
             let y = centerY + (row * gap);
-            
-            // Get Color
             const pixel = ctx.getImageData(x, y, 1, 1).data;
             const colorCode = detectColor(pixel[0], pixel[1], pixel[2]);
             currentScan.push(colorCode);
         }
     }
 
-    // --- STRICT VALIDATION (RESTORED) ---
-    // This checks if you are showing the correct side.
-    
+    // --- STRICT VALIDATION ---
     const centerColorCode = currentScan[4]; // Center sticker
-    const expectedSideName = scanOrder[currentSideIndex]; // e.g., 'front'
-    const expectedColorName = sideColors[expectedSideName]; // e.g., 'Green'
-    const expectedCode = colorCharMap[expectedColorName];   // e.g., 'G'
+    const expectedSideName = scanOrder[currentSideIndex]; 
+    const expectedColorName = sideColors[expectedSideName]; 
+    const expectedCode = colorCharMap[expectedColorName]; 
 
-    // Check: Is the center correct?
+    // Check Correctness
     let isWrong = (centerColorCode !== expectedCode);
 
-    // Exception: Allow Red/Orange confusion because cameras struggle with it
+    // Allow Red/Orange Swap (Common Camera Issue)
     if ((centerColorCode === 'R' && expectedCode === 'O') || (centerColorCode === 'O' && expectedCode === 'R')) {
         isWrong = false;
     }
 
-    // BLOCKING LOGIC
     if (isWrong) {
-        instructionText.innerText = `❌ Wrong! I see ${centerColorCode}, need ${expectedName}.`;
+        // FAIL STATE
+        instructionText.innerText = `❌ Wrong! Saw ${centerColorCode}, need ${expectedColorName}.`;
         instructionText.style.color = "red";
-        speak(`Wrong side. I see ${centerColorCode}. Please show the ${expectedName} side.`);
+        speak(`Wrong side. I see ${centerColorCode}. Please show ${expectedColorName}.`);
         
-        // WE RETURN HERE. It will NOT save. It forces you to retry.
+        // Reset Button
+        setTimeout(() => {
+            isScanning = false;
+            scanBtn.innerText = "TRY AGAIN";
+        }, 1000);
         return; 
     }
 
-    // --- SAVE AND CONTINUE (Only if Correct) ---
+    // --- SUCCESS STATE ---
     instructionText.style.color = "white"; 
     cubeMap[expectedSideName] = currentScan;
     
     currentSideIndex++;
     
     if (currentSideIndex < scanOrder.length) {
-        // NEXT SIDE
+        // Prepare Next Side
         let nextSide = scanOrder[currentSideIndex];
         let nextColor = sideColors[nextSide];
         
         instructionText.innerText = `Saved ${expectedColorName}. Show ${nextColor} center.`;
         speak(`Saved. Now show ${nextColor}.`);
         
-    } else {
-        // --- DONE SCANNING ---
+        // Reset Button Immediately
+        isScanning = false;
+        scanBtn.innerText = "SCAN SIDE";
         
-        // CHECK DAISY (Daisy is on Down/Yellow face)
+    } else {
+        // DONE SCANNING
+        isScanning = false;
+        
+        // Check Daisy (Bottom Face Logic)
         if (isDaisySolved(cubeMap)) {
             speak("Scanning done. Daisy found! Moving to White Cross.");
             startWhiteCross(); 
@@ -241,17 +247,21 @@ function scanFace() {
 // --- 5. SOLVER LOGIC ---
 // =========================================================
 
-function getFaceName(letter) {
-    if (letter === 'F') return "Front";
-    if (letter === 'R') return "Right";
-    if (letter === 'L') return "Left";
-    if (letter === 'B') return "Back";
-    return "Side";
+function isDaisySolved(map) {
+    // Daisy is on DOWN (Yellow) face in scan order
+    let down = map.down; 
+    if (!down || down.length < 9) return false;
+
+    // Center must be Yellow (Index 4)
+    // Petals must be White (1, 3, 5, 7)
+    const isYellowCenter = (down[4] === 'Y');
+    const hasWhitePetals = (down[1] === 'W' && down[3] === 'W' && down[5] === 'W' && down[7] === 'W');
+    
+    return isYellowCenter && hasWhitePetals;
 }
 
 // --- PHASE 1: DAISY ---
 function startDaisySolver() {
-    // Smart Check
     if (isDaisySolved(cubeMap)) {
         speak("Daisy is perfect! Moving to White Cross.");
         startWhiteCross();
@@ -266,8 +276,8 @@ function startDaisySolver() {
     scanBtn.innerText = "I DID IT -> RE-SCAN";
     scanBtn.className = "w-full bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg"; 
     
+    // UNBIND previous click, BIND new re-scan logic
     scanBtn.onclick = () => {
-        // Reset Logic
         currentSideIndex = 0;
         scanOrder.forEach(side => cubeMap[side] = []);
         enterMainApp(); 
@@ -276,7 +286,6 @@ function startDaisySolver() {
 
 // --- PHASE 1.5: WHITE CROSS ---
 function startWhiteCross() {
-    hasFlippedForCross = false; 
     try {
         if (typeof getCrossMove !== "function") throw new Error("Missing getCrossMove");
         let move = getCrossMove(cubeMap);
@@ -585,18 +594,7 @@ function makeBtn(text, color, action) {
 
 function openVideo(videoId) { alert("Video placeholder"); }
 
-// --- MATH LOGIC ---
-// FIX: Daisy is on the BOTTOM (Down face), not Top!
-function isDaisySolved(map) {
-    let down = map.down; 
-    if (!down || down.length < 9) return false;
-
-    const isYellowCenter = (down[4] === 'Y');
-    const hasWhitePetals = (down[1] === 'W' && down[3] === 'W' && down[5] === 'W' && down[7] === 'W');
-    
-    return isYellowCenter && hasWhitePetals;
-}
-
-function isCubeSolved(map) { return false; }
+// --- FALLBACK MATH LOGIC (If solver.js is missing) ---
 function getCrossMove(map) { return "D"; }
 function virtualMove(move, map) { console.log("Virtual Move:", move); }
+function isCubeSolved(map) { return false; }
