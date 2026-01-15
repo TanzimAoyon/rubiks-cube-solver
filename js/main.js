@@ -11,6 +11,12 @@ const sideColors = {
     'front': 'Green', 'right': 'Red', 'back': 'Blue', 
     'left': 'Orange', 'up': 'White', 'down': 'Yellow' 
 };
+// Map for validation
+const colorCharMap = {
+    'Green': 'G', 'Red': 'R', 'Blue': 'B', 
+    'Orange': 'O', 'White': 'W', 'Yellow': 'Y'
+};
+
 let currentSideIndex = 0;
 let cubeMap = { front: [], right: [], back: [], left: [], up: [], down: [] };
 
@@ -32,9 +38,8 @@ function goHome() {
     document.getElementById('home-screen').style.display = 'flex';
     document.getElementById('main-app').style.display = 'none';
     document.getElementById('steps-menu').style.display = 'none';
-    
     stopCamera();
-    removeControls(); // Clear any buttons
+    removeControls();
 }
 
 function enterMainApp() {
@@ -46,9 +51,9 @@ function enterMainApp() {
     // RESET SCANNER
     currentSideIndex = 0;
     instructionText.innerText = "Show Green Center, then Scan.";
+    instructionText.style.color = "white";
     speak("Show Green Center, then Scan.");
     
-    // Ensure Scan Button is visible
     if(scanBtn) {
         scanBtn.style.display = "block";
         scanBtn.innerText = "SCAN SIDE";
@@ -123,17 +128,22 @@ function rgbToHsv(r, g, b) {
 
 function detectColor(r, g, b) {
     const [h, s, v] = rgbToHsv(r, g, b);
-    if (s < 25 && v > 40) return 'W'; 
+    
+    // 1. WHITE Check (Tuned for better Yellow/White separation)
+    // Saturation must be VERY low for white
+    if (s < 25 && v > 45) return 'W'; 
+
+    // 2. Color checks
     if (h >= 0 && h < 15) return 'R';   
     if (h >= 335 && h <= 360) return 'R'; 
     if (h >= 15 && h < 50) return 'O';  
-    if (h >= 50 && h < 80) return 'Y';  
-    if (h >= 80 && h < 160) return 'G'; 
-    if (h >= 160 && h < 260) return 'B'; 
+    if (h >= 50 && h < 85) return 'Y';  // Expanded Yellow range slightly
+    if (h >= 85 && h < 160) return 'G'; 
+    if (h >= 160 && h < 265) return 'B'; 
     return 'W'; 
 }
 
-// --- 4. ORIGINAL "FAST SCAN" LOGIC (No Popup) ---
+// --- 4. SCANNER LOGIC (With Validation) ---
 
 function scanFace() {
     if (!video.srcObject) return;
@@ -164,34 +174,55 @@ function scanFace() {
         }
     }
 
-    // 3. IMMEDIATE SAVE (No Popup)
-    const sideName = scanOrder[currentSideIndex];
-    const sideColor = sideColors[sideName];
-    cubeMap[sideName] = currentScan;
+    // --- 3. VALIDATION (The "Wrong Color" Fix) ---
+    // Check the Center Sticker (Index 4)
+    let centerColorCode = currentScan[4]; 
+    let expectedSide = scanOrder[currentSideIndex]; // e.g., 'front'
+    let expectedName = sideColors[expectedSide];    // e.g., 'Green'
+    let expectedCode = colorCharMap[expectedName];  // e.g., 'G'
+
+    // Allow Red/Orange mixups because they look similar, block others
+    let isWrong = false;
+    if (centerColorCode !== expectedCode) {
+        // Exception: Allow Red 'R' and Orange 'O' to pass for each other
+        if (!((centerColorCode === 'R' && expectedCode === 'O') || (centerColorCode === 'O' && expectedCode === 'R'))) {
+            isWrong = true;
+        }
+    }
+
+    if (isWrong) {
+        instructionText.innerText = `❌ Wrong Side! I see ${centerColorCode}, need ${expectedName}.`;
+        instructionText.style.color = "red";
+        speak(`Wrong side. Please show the ${expectedName} side.`);
+        return; // STOP HERE! Do not save.
+    }
+
+    // --- 4. SAVE (If validation passed) ---
+    instructionText.style.color = "white"; // Reset text color
+    cubeMap[expectedSide] = currentScan;
     
-    // 4. Advance
+    // 5. Advance
     currentSideIndex++;
     
-    // 5. CHECK PROGRESS
+    // 6. CHECK PROGRESS
     if (currentSideIndex < scanOrder.length) {
         // NEXT SIDE
         let nextSide = scanOrder[currentSideIndex];
         let nextColor = sideColors[nextSide];
         
-        instructionText.innerText = `Saved ${sideColor}. Show ${nextColor} center.`;
+        instructionText.innerText = `Saved ${expectedName}. Show ${nextColor} center.`;
         speak(`Saved. Now show ${nextColor}.`);
-        
-        // Button stays visible, just waits for next click
         
     } else {
         // --- DONE SCANNING ---
-        // Smart Check: Did they already make the Daisy?
-        if (typeof isDaisySolved === 'function' && isDaisySolved(cubeMap)) {
+        // 1. Check Daisy Immediately
+        if (isDaisySolved(cubeMap)) {
             speak("Scanning done. Daisy found! Moving to White Cross.");
             startWhiteCross(); 
         } else {
+            // 2. Daisy Not Found -> Instruction Mode
             instructionText.innerText = "Scanning Complete! Let's make the Daisy.";
-            speak("Scanning complete. Let's make the Daisy.");
+            speak("Scanning complete. Daisy not found. Please make a Daisy.");
             
             scanBtn.innerText = "START DAISY";
             scanBtn.onclick = startDaisySolver;
@@ -213,8 +244,9 @@ function getFaceName(letter) {
 
 // --- PHASE 1: DAISY ---
 function startDaisySolver() {
-    if (typeof isDaisySolved === 'function' && isDaisySolved(cubeMap)) {
-        speak("Daisy is perfect! Moving to White Cross.");
+    // Check again just in case
+    if (isDaisySolved(cubeMap)) {
+        speak("Daisy found! Moving to White Cross.");
         startWhiteCross();
         return;
     }
@@ -228,6 +260,7 @@ function startDaisySolver() {
     scanBtn.className = "w-full bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg"; 
     
     scanBtn.onclick = () => {
+        // RESET FOR RE-SCAN
         currentSideIndex = 0;
         scanOrder.forEach(side => cubeMap[side] = []);
         enterMainApp(); 
@@ -545,13 +578,14 @@ function makeBtn(text, color, action) {
 
 function openVideo(videoId) { alert("Video placeholder"); }
 
-// --- MATH LOGIC ---
+// --- MATH LOGIC (Fixed Daisy Check) ---
 function isDaisySolved(map) {
     let up = map.up;
     if (!up || up.length < 9) return false;
     // Check Yellow Center (4) + White Edges (1,3,5,7)
     return (up[4] === 'Y' && up[1] === 'W' && up[3] === 'W' && up[5] === 'W' && up[7] === 'W');
 }
+
 function isCubeSolved(map) { return false; }
 function getCrossMove(map) { return "D"; }
 function virtualMove(move, map) { console.log("Virtual Move:", move); }
