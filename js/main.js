@@ -252,7 +252,7 @@ function scanFace() {
 
         if (daisyFound) {
             // SUCCESS
-            speak("Great! Daisy found. Moving to White Cross.");
+            speak("Great Work! Daisy found. Moving to White Cross.");
             instructionText.innerText = "Great! Daisy Found! ✅";
             
             setTimeout(() => {
@@ -261,7 +261,7 @@ function scanFace() {
             
         } else {
             // FAILURE
-            instructionText.innerText = "Daisy Not Found. Let's make one.";
+            instructionText.innerText = "Daisy Not Found. Let's make A daisy.";
             speak("Daisy not found. Please make a daisy. Keep the yellow block in the center, and four white petals around it.");
             
             scanBtn.innerText = "START DAISY";
@@ -280,7 +280,7 @@ function startDaisySolver() {
     if (typeof isDaisySolved === 'function') daisyFound = isDaisySolved(cubeMap);
 
     if (daisyFound) {
-        speak("Daisy is perfect! Moving to White Cross.");
+        speak("Perfect Daisy found! now Moving to White Cross.");
         startWhiteCross();
         return;
     }
@@ -288,7 +288,7 @@ function startDaisySolver() {
     instructionText.innerText = "Step 1: Make the Daisy.";
     instructionText.style.color = "yellow";
     
-    speak("Make a daisy by keeping the yellow block in the center, and 4 white petals.");
+    // speak("Make a daisy by keeping the yellow block in the center, and 4 white petals.");
 
     scanBtn.innerText = "I DID IT -> RE-SCAN";
     scanBtn.className = "w-full bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg"; 
