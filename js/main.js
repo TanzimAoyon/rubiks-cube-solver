@@ -18,19 +18,19 @@ const colorCharMap = {
     'Orange': 'O', 'White': 'W', 'Yellow': 'Y'
 };
 
+// Map Code -> Name for Speech
+const codeToNameMap = {
+    'G': 'Green', 'R': 'Red', 'B': 'Blue', 
+    'O': 'Orange', 'W': 'White', 'Y': 'Yellow'
+};
+
 let currentSideIndex = 0;
 let cubeMap = { front: [], right: [], back: [], left: [], up: [], down: [] };
 let isScanning = false; 
 
-// --- 1. HELPER: CONVERT CODE TO NAME (The Fix) ---
+// --- 1. HELPER: CONVERT CODE TO NAME ---
 function getColorName(code) {
-    if (code === 'G') return 'Green';
-    if (code === 'R') return 'Red';
-    if (code === 'B') return 'Blue';
-    if (code === 'O') return 'Orange';
-    if (code === 'W') return 'White';
-    if (code === 'Y') return 'Yellow';
-    return 'Unknown';
+    return codeToNameMap[code] || 'Unknown';
 }
 
 // --- 2. VOICE MANAGER ---
@@ -194,10 +194,8 @@ function scanFace() {
     const expectedColorName = sideColors[expectedSideName]; 
     const expectedCode = colorCharMap[expectedColorName]; 
     
-    // FIX: Convert "O" to "Orange" for speech
     const seenColorName = getColorName(centerColorCode); 
 
-    // Check Correctness
     let isWrong = (centerColorCode !== expectedCode);
 
     // Allow Red/Orange Swap
@@ -210,10 +208,8 @@ function scanFace() {
         instructionText.innerText = `❌ Wrong! Saw ${seenColorName}, need ${expectedColorName}.`;
         instructionText.style.color = "red";
         
-        // FIX: Speak the full name
         speak(`Wrong side. I see ${seenColorName}. Please show ${expectedColorName}.`);
         
-        // Reset Button
         setTimeout(() => {
             isScanning = false;
             scanBtn.innerText = "TRY AGAIN";
@@ -228,7 +224,7 @@ function scanFace() {
     currentSideIndex++;
     
     if (currentSideIndex < scanOrder.length) {
-        // Prepare Next Side
+        // NEXT SIDE
         let nextSide = scanOrder[currentSideIndex];
         let nextColor = sideColors[nextSide];
         
@@ -242,8 +238,19 @@ function scanFace() {
         // DONE SCANNING
         isScanning = false;
         
-        // DAISY CHECK (Bottom Face)
-        if (isDaisySolved(cubeMap)) {
+        // DAISY CHECK (Uses cube-logic.js if available, or internal helper)
+        let daisyFound = false;
+        if (typeof isDaisySolved === 'function') {
+            daisyFound = isDaisySolved(cubeMap);
+        } else {
+            // Internal fallback just in case
+            let down = cubeMap.down; 
+            if (down && down.length >= 9) {
+                 daisyFound = (down[4] === 'Y' && down[1] === 'W' && down[3] === 'W' && down[5] === 'W' && down[7] === 'W');
+            }
+        }
+
+        if (daisyFound) {
             // SUCCESS
             speak("Great! Daisy found. Moving to White Cross.");
             instructionText.innerText = "Great! Daisy Found! ✅";
@@ -267,19 +274,12 @@ function scanFace() {
 // --- 6. SOLVER LOGIC ---
 // =========================================================
 
-function isDaisySolved(map) {
-    let down = map.down; 
-    if (!down || down.length < 9) return false;
-
-    const isYellowCenter = (down[4] === 'Y');
-    const hasWhitePetals = (down[1] === 'W' && down[3] === 'W' && down[5] === 'W' && down[7] === 'W');
-    
-    return isYellowCenter && hasWhitePetals;
-}
-
 // --- PHASE 1: DAISY ---
 function startDaisySolver() {
-    if (isDaisySolved(cubeMap)) {
+    let daisyFound = false;
+    if (typeof isDaisySolved === 'function') daisyFound = isDaisySolved(cubeMap);
+
+    if (daisyFound) {
         speak("Daisy is perfect! Moving to White Cross.");
         startWhiteCross();
         return;
@@ -300,20 +300,13 @@ function startDaisySolver() {
     };
 }
 
-// --- PHASE 1.5: WHITE CROSS ---
-
-
-
-
-// --- PHASE 1.5: WHITE CROSS (DAISY -> CROSS) ---
+// --- PHASE 1.5: WHITE CROSS (Uses cube-logic.js) ---
 function startWhiteCross() {
     try {
-        if (typeof getCrossMove !== "function") throw new Error("Missing getCrossMove");
+        if (typeof getCrossMove !== "function") throw new Error("Missing cube-logic.js");
         
-        // 1. Ask the Brain for the next move
         let move = getCrossMove(cubeMap);
         
-        // 2. Handle "Done" State
         if (move === "DONE") {
             speak("Cross completed! Great job. Proceeding to corners.");
             instructionText.innerText = "Cross Done! ✅";
@@ -322,30 +315,33 @@ function startWhiteCross() {
             return;
         }
 
-        // 3. Handle "Rotate Top" (Searching for match)
         if (move === "U") {
             instructionText.innerText = "Rotate Top 🔄 (Finding Match)";
-            speak("Rotate the Yellow Top Clockwise once. Then tap Next.");
+            speak("Rotate the Yellow Top Clockwise once.");
         } 
-        // 4. Handle "Turn 2 Times" (Match Found!)
+        else if (move === "D") {
+             instructionText.innerText = "Rotate Bottom 🔄";
+             speak("Rotate the Yellow Face Clockwise.");
+        }
         else if (move.includes("2")) {
             let faceLetter = move[0];
             let colorName = "";
-            
             if (faceLetter === 'F') colorName = "Green";
             if (faceLetter === 'R') colorName = "Red";
             if (faceLetter === 'L') colorName = "Orange";
             if (faceLetter === 'B') colorName = "Blue";
             
             instructionText.innerText = `Match! Turn ${colorName} 2x`;
-            speak(`Match found on ${colorName}! Turn the ${colorName} face two times to bring the white petal down.`);
-        } 
+            speak(`Match found on ${colorName}! Turn the ${colorName} face two times.`);
+        } else {
+             // Fallback for any other move
+             instructionText.innerText = `Move: ${move}`;
+             speak(`Perform move ${move}`);
+        }
         
-        // 5. Update Memory (CRITICAL!)
-        // We tell the app "The user did this move, update your mental map."
+        // Update Memory
         virtualMove(move, cubeMap);
 
-        // 6. Setup button for the next step
         scanBtn.innerText = "I DID IT (NEXT MOVE)";
         scanBtn.disabled = false;
         scanBtn.onclick = startWhiteCross;
@@ -356,64 +352,75 @@ function startWhiteCross() {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// --- PHASE 2: CORNERS ---
+// --- PHASE 2: CORNERS (Uses corners-solver.js) ---
 function startCornersSolver() {
     if (scanBtn) scanBtn.style.display = "none";
-    removeControls(); 
-    instructionText.innerText = "Phase 2: Corners";
-    speak("Time to solve corners.");
-
-    let controlsDiv = createProceedButton(startCornersInstruction);
-    document.body.appendChild(controlsDiv);
-}
-
-function startCornersInstruction() {
-    removeControls(); 
-    showTriggerOverlay(); 
-
-    let introText = "Make sure Yellow center is Up. Look for white stickers on Top Layer.";
-    let case1Text = "Case 1: White stuck on bottom? Hold on right. Right Trigger once.";
-    let case2Text = "Case 2: White facing up? Rotate top. Right Trigger twice.";
+    removeControls();
     
-    let fullSpeech = introText + " ... " + case1Text + " ... " + case2Text;
-    instructionText.innerText = "Tutorial: Triggers";
-    speak(fullSpeech);
+    let moveCode = "D";
+    try {
+        // Call logic from corners-solver.js
+        if (typeof getCornersMove === "function") {
+            moveCode = getCornersMove(cubeMap);
+        } else {
+            console.error("Missing corners-solver.js!");
+            return;
+        }
+    } catch(e) { console.error(e); }
 
-    createCornerControls(
-        () => speak(case1Text),
-        () => speak(case2Text),
-        () => openVideo("YOUR_VIDEO_ID"),
-        () => speak(fullSpeech),
-        () => startMiddleLayerSolver()
-    );
+    // Victory Check
+    if (moveCode === "DONE") {
+        instructionText.innerText = "Corners Solved! ✅";
+        speak("First Layer Complete! Great job. Moving to Middle Layer.");
+        
+        let div = createProceedButton(() => {
+             startMiddleLayerSolver();
+        });
+        document.body.appendChild(div);
+        return;
+    }
+
+    // Instruction Logic based on Move Name
+    let virtualCode = "D"; // Code to update memory
+
+    if (moveCode === "D" || moveCode === "Top Twist") {
+        // Note: In your logic, "Top Twist" often implies D/U rotation searching
+        instructionText.innerText = "Rotate Bottom (Yellow) 🔄";
+        speak("Rotate the bottom Yellow layer to find a matching corner.");
+        showBottomRotateOverlay(); 
+        virtualCode = "D"; 
+    }
+    else if (moveCode === "Right Trigger") {
+        instructionText.innerText = "Right Trigger ⚡";
+        speak("Perform the Right Trigger: Right Up, Top Push, Right Down.");
+        showTriggerOverlay("right"); 
+        virtualCode = "R U R' U'";
+    }
+    else if (moveCode === "Left Trigger") {
+        instructionText.innerText = "Left Trigger ⚡";
+        speak("Perform the Left Trigger: Left Up, Top Push, Left Down.");
+        showTriggerOverlay("left");
+        virtualCode = "L' U' L U";
+    }
+
+    // Update Memory
+    virtualMove(virtualCode, cubeMap);
+
+    // Next Button
+    let div = document.createElement("div");
+    div.id = "solver-controls"; div.style.position = "fixed"; div.style.bottom = "20px";
+    div.style.width = "100%"; div.style.display = "flex"; div.style.justifyContent = "center"; div.style.zIndex = "200";
+    
+    let btn = document.createElement("button");
+    btn.innerText = "I DID IT ➡️"; 
+    btn.style.padding = "15px 40px"; btn.style.fontSize = "18px"; btn.style.fontWeight = "bold";
+    btn.style.backgroundColor = "#2563eb"; btn.style.color = "white";
+    btn.style.borderRadius = "50px"; btn.style.border = "none";
+    
+    btn.onclick = startCornersSolver; 
+    
+    div.appendChild(btn);
+    document.body.appendChild(div);
 }
 
 // --- PHASE 3: MIDDLE LAYER ---
@@ -422,28 +429,10 @@ function startMiddleLayerSolver() {
     removeControls(); 
     instructionText.innerText = "Phase 3: Middle Layer";
     speak("Phase 3. Middle Layer edges.");
-    let controlsDiv = createProceedButton(startMiddleLayerInstruction);
-    document.body.appendChild(controlsDiv);
-}
-
-function startMiddleLayerInstruction() {
-    removeControls(); 
-    showMiddleLayerOverlay(); 
-    let introText = "Make a T shape. Push AWAY from top color. Trigger.";
-    let case1Text = "Case 1: Edge Stuck? Hold Right. Right Move once.";
-    let case2Text = "Case 2: No Edges? They are stuck. Do Case 1.";
     
-    let fullSpeech = introText + " ... " + case1Text + " ... " + case2Text;
-    instructionText.innerText = "Tutorial: Middle Layer";
-    speak(fullSpeech);
-
-    createCornerControls(
-        () => speak(case1Text),
-        () => speak(case2Text),
-        () => openVideo("YOUR_VIDEO_ID"),
-        () => speak(introText),
-        () => startYellowCrossSolver()
-    );
+    // Placeholder for now, waiting for Step 3 logic
+    let controlsDiv = createProceedButton(startYellowCrossSolver);
+    document.body.appendChild(controlsDiv);
 }
 
 // --- PHASE 4: YELLOW CROSS ---
@@ -451,22 +440,8 @@ function startYellowCrossSolver() {
     removeControls(); 
     instructionText.innerText = "Phase 4: Yellow Cross";
     speak("Phase 4. Yellow Cross.");
-    let controlsDiv = createProceedButton(startYellowCrossInstruction);
+    let controlsDiv = createProceedButton(startYellowFaceSolver);
     document.body.appendChild(controlsDiv);
-}
-
-function startYellowCrossInstruction() {
-    removeControls(); 
-    showYellowCrossOverlay(); 
-    let strategy = "Dot, L-Shape, or Line. Move: Front Clockwise, Right Trigger, Front Inverse.";
-    instructionText.innerText = "Tutorial: Yellow Cross";
-    speak(strategy);
-
-    createManualControls(
-        () => openVideo("YOUR_VIDEO_ID"),
-        () => speak(strategy),
-        () => startYellowFaceSolver() 
-    );
 }
 
 // --- PHASE 5: YELLOW FACE ---
@@ -474,22 +449,8 @@ function startYellowFaceSolver() {
     removeControls(); 
     instructionText.innerText = "Phase 5: Yellow Face";
     speak("Phase 5. Make top face Yellow.");
-    let controlsDiv = createProceedButton(startYellowFaceInstruction);
+    let controlsDiv = createProceedButton(startFinalSolve);
     document.body.appendChild(controlsDiv);
-}
-
-function startYellowFaceInstruction() {
-    removeControls(); 
-    showYellowFaceOverlay(); 
-    let strategy = "Fish pattern? Mouth bottom-left. Algorithm: R, U, R prime, U, R, U 2, R prime.";
-    instructionText.innerText = "Tutorial: Yellow Face";
-    speak(strategy);
-
-    createManualControls(
-        () => openVideo("YOUR_VIDEO_ID"),
-        () => speak(strategy),
-        () => startFinalSolve() 
-    );
 }
 
 // --- PHASE 6: FINALE ---
@@ -497,40 +458,25 @@ function startFinalSolve() {
     removeControls(); 
     instructionText.innerText = "Phase 6: The Finale";
     speak("Phase 6. Solve corners first.");
-    let controlsDiv = createProceedButton(startFinalCornersInstruction);
+    let controlsDiv = createProceedButton(startFinalEdgesInstruction);
     document.body.appendChild(controlsDiv);
-}
-
-function startFinalCornersInstruction() {
-    removeControls(); 
-    showHeadlightsOverlay(); 
-    let strategy = "Headlights at back. R Prime, F, R Prime, B 2. R, F Prime, R Prime, B 2, R 2.";
-    instructionText.innerText = "Step A: Headlights";
-    speak(strategy);
-    createManualControls(
-        () => openVideo("YOUR_VIDEO_ID"),
-        () => speak(strategy),
-        () => startFinalEdgesInstruction()
-    );
 }
 
 function startFinalEdgesInstruction() {
     removeControls();
-    removeHeadlightsOverlay(); 
-    let strategy = "Solved side at back. F 2, U, L, R Prime, F 2, L Prime, R, U, F 2.";
-    instructionText.innerText = "Step B: Final Edges";
-    speak(strategy);
+    instructionText.innerText = "Final Step: Edges";
+    speak("Solve the final edges.");
 
     let overlay = document.createElement("div");
     overlay.id = "generic-overlay";
     overlay.style.position = "fixed"; overlay.style.top = "100px"; overlay.style.width = "100%";
     overlay.style.textAlign = "center"; overlay.style.color = "white";
-    overlay.innerHTML = `<h1 style="color:#22c55e;">FINISH IT!</h1><p>Solved side at BACK.</p>`;
+    overlay.innerHTML = `<h1 style="color:#22c55e;">FINISH IT!</h1>`;
     document.body.appendChild(overlay);
 
     createManualControls(
-        () => openVideo("YOUR_VIDEO_ID"),
-        () => speak(strategy),
+        () => alert("Video"),
+        () => speak("Final Step"),
         () => { alert("CONGRATULATIONS!"); location.reload(); }
     );
 }
@@ -559,21 +505,32 @@ function createOverlay(id) {
     return div;
 }
 
-function showTriggerOverlay() {
+function showTriggerOverlay(side) {
     if (document.getElementById("trigger-overlay")) return;
     let overlay = createOverlay("trigger-overlay");
-    overlay.innerHTML = `<h2 style="color:white; margin-top:60px;">Triggers</h2>
-    <img src="assets/right-trigger.png" style="width:80%; border:3px solid red; margin:10px;" onclick="speak('Right Trigger instructions...')">
-    <img src="assets/left-trigger.png" style="width:80%; border:3px solid orange; margin:10px;" onclick="speak('Left Trigger instructions...')">`;
+    if (side === 'left') {
+         overlay.innerHTML = `<h2 style="color:white; margin-top:60px;">Left Trigger</h2>
+         <img src="assets/left-trigger.png" style="width:80%; border:3px solid orange;">`;
+    } else {
+         overlay.innerHTML = `<h2 style="color:white; margin-top:60px;">Right Trigger</h2>
+         <img src="assets/right-trigger.png" style="width:80%; border:3px solid red;">`;
+    }
     document.body.appendChild(overlay);
+}
+
+function showBottomRotateOverlay() {
+    if (document.getElementById("rotate-overlay")) return;
+    let o = createOverlay("rotate-overlay");
+    o.innerHTML = `<h2 style="color:white; margin-top:60px;">Rotate Bottom</h2><p>Spin the Yellow face until a corner matches.</p>`;
+    document.body.appendChild(o);
+    setTimeout(() => { if(o) o.remove(); }, 3000);
 }
 
 function showMiddleLayerOverlay() {
     if (document.getElementById("middle-overlay")) return;
     let overlay = createOverlay("middle-overlay");
     overlay.innerHTML = `<h2 style="color:white; margin-top:60px;">Middle Layer</h2>
-    <img src="assets/middle-right.jpg" style="width:80%; border:3px solid red; margin:10px;" onclick="speak('Push Left. Right Trigger. Fix Corner.')">
-    <img src="assets/middle-left.jpg" style="width:80%; border:3px solid orange; margin:10px;" onclick="speak('Push Right. Left Trigger. Fix Corner.')">`;
+    <img src="assets/middle-right.jpg" style="width:80%; border:3px solid red; margin:10px;">`;
     document.body.appendChild(overlay);
 }
 
@@ -581,7 +538,7 @@ function showYellowCrossOverlay() {
     if (document.getElementById("cross-overlay")) return;
     let overlay = createOverlay("cross-overlay");
     overlay.innerHTML = `<h2 style="color:white; margin-top:60px;">Yellow Cross</h2>
-    <img src="assets/yellow-cross.png" style="width:80%; border:3px solid yellow; margin:10px;" onclick="speak('Front, Right Trigger, Front Inverse')">`;
+    <img src="assets/yellow-cross.png" style="width:80%; border:3px solid yellow; margin:10px;">`;
     document.body.appendChild(overlay);
 }
 
@@ -589,7 +546,7 @@ function showYellowFaceOverlay() {
     if (document.getElementById("fish-overlay")) return;
     let overlay = createOverlay("fish-overlay");
     overlay.innerHTML = `<h2 style="color:white; margin-top:60px;">Yellow Face</h2>
-    <img src="assets/yellow-fish.png" style="width:80%; border:3px solid yellow; margin:10px;" onclick="speak('Fish Algo: R, U, R prime, U, R, U2, R prime')">`;
+    <img src="assets/yellow-fish.png" style="width:80%; border:3px solid yellow; margin:10px;">`;
     document.body.appendChild(overlay);
 }
 
@@ -597,7 +554,7 @@ function showHeadlightsOverlay() {
     if (document.getElementById("headlights-overlay")) return;
     let overlay = createOverlay("headlights-overlay");
     overlay.innerHTML = `<h2 style="color:white; margin-top:60px;">Headlights</h2>
-    <img src="assets/yellow-headlights.png" style="width:80%; border:3px solid red; margin:10px;" onclick="speak('Headlights at back. Long Move.')">`;
+    <img src="assets/yellow-headlights.png" style="width:80%; border:3px solid red; margin:10px;">`;
     document.body.appendChild(overlay);
 }
 
@@ -623,21 +580,19 @@ function createManualControls(onHelp, onRepeat, onNext) {
 }
 
 function createCornerControls(onCase1, onCase2, onHelp, onRepeat, onNext) {
+    // Legacy manual controls - mostly unused now that we have auto-solver
     removeControls();
     let div = document.createElement("div");
     div.id = "solver-controls"; div.style.position = "fixed"; div.style.bottom = "10px";
     div.style.width = "95%"; div.style.left = "2.5%"; div.style.zIndex = "200";
     div.style.display = "flex"; div.style.flexDirection = "column"; div.style.gap = "5px";
-    
     let row1 = document.createElement("div"); row1.style.display = "flex"; row1.style.gap = "5px"; 
     row1.appendChild(makeBtn("Case 1", "#9333ea", onCase1));
     row1.appendChild(makeBtn("Case 2", "#9333ea", onCase2));
-    
     let row2 = document.createElement("div"); row2.style.display = "flex"; row2.style.gap = "5px";
     row2.appendChild(makeBtn("Help", "#3b82f6", onHelp));
     row2.appendChild(makeBtn("Repeat", "#f59e0b", onRepeat));
     row2.appendChild(makeBtn("Next", "#22c55e", onNext));
-    
     div.appendChild(row1); div.appendChild(row2);
     document.body.appendChild(div);
 }
@@ -651,8 +606,3 @@ function makeBtn(text, color, action) {
 }
 
 function openVideo(videoId) { alert("Video placeholder"); }
-
-// --- FALLBACK MATH LOGIC (If solver.js is missing) ---
-function getCrossMove(map) { return "D"; }
-function virtualMove(move, map) { console.log("Virtual Move:", move); }
-function isCubeSolved(map) { return false; }
