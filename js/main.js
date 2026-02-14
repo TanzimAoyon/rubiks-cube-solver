@@ -252,7 +252,7 @@ function scanFace() {
 
         if (daisyFound) {
             // SUCCESS
-            speak("Great! Daisy found. Moving to White Cross.");
+            speak("Great! Daisy found. Let's make the White Cross.");
             instructionText.innerText = "Great! Daisy Found! ✅";
             
             setTimeout(() => {
@@ -300,56 +300,52 @@ function startDaisySolver() {
     };
 }
 
-// --- PHASE 1.5: WHITE CROSS (Uses cube-logic.js) ---
+// --- PHASE 1.5: WHITE CROSS (MANUAL INSTRUCTION MODE) ---
 function startWhiteCross() {
-    try {
-        if (typeof getCrossMove !== "function") throw new Error("Missing cube-logic.js");
-        
-        let move = getCrossMove(cubeMap);
-        
-        if (move === "DONE") {
-            speak("Cross completed! Great job. Proceeding to corners.");
-            instructionText.innerText = "Cross Done! ✅";
-            scanBtn.innerText = "NEXT: CORNERS";
-            scanBtn.onclick = startCornersSolver; 
-            return;
-        }
+    // 1. Hide the Scan Button
+    if (scanBtn) scanBtn.style.display = "none";
+    removeControls(); // Clear old controls
 
-        if (move === "U") {
-            instructionText.innerText = "Rotate Top 🔄 (Finding Match)";
-            speak("Rotate the Yellow Top Clockwise once.");
-        } 
-        else if (move === "D") {
-             instructionText.innerText = "Rotate Bottom 🔄";
-             speak("Rotate the Yellow Face Clockwise.");
-        }
-        else if (move.includes("2")) {
-            let faceLetter = move[0];
-            let colorName = "";
-            if (faceLetter === 'F') colorName = "Green";
-            if (faceLetter === 'R') colorName = "Red";
-            if (faceLetter === 'L') colorName = "Orange";
-            if (faceLetter === 'B') colorName = "Blue";
-            
-            instructionText.innerText = `Match! Turn ${colorName} 2x`;
-            speak(`Match found on ${colorName}! Turn the ${colorName} face two times.`);
-        } else {
-             // Fallback for any other move
-             instructionText.innerText = `Move: ${move}`;
-             speak(`Perform move ${move}`);
-        }
-        
-        // Update Memory
-        virtualMove(move, cubeMap);
+    // 2. The Explanation
+    const explanation = "Rotate the yellow top face until a white petal's side color matches the center color below it. When it matches, rotate that face 180 degrees downwards. Do this for all four petals.";
 
-        scanBtn.innerText = "I DID IT (NEXT MOVE)";
-        scanBtn.disabled = false;
-        scanBtn.onclick = startWhiteCross;
+    // 3. UI Updates
+    instructionText.innerText = "Match Side Colors & Turn Down 2x";
+    speak(explanation);
 
-    } catch (error) {
-        console.error(error);
-        instructionText.innerText = "Logic Error: " + error.message;
-    }
+    // 4. Create Custom Buttons for this Step
+    let div = document.createElement("div");
+    div.id = "solver-controls"; 
+    div.style.position = "fixed"; div.style.bottom = "20px";
+    div.style.width = "100%"; div.style.display = "flex"; 
+    div.style.justifyContent = "center"; div.style.gap = "15px"; 
+    div.style.zIndex = "9999";
+    
+    // Button 1: Explain Again
+    let btnHelp = document.createElement("button");
+    btnHelp.innerText = "🎧 INSTRUCTION"; 
+    btnHelp.style.padding = "15px 20px";
+    btnHelp.style.fontSize = "16px"; btnHelp.style.fontWeight = "bold";
+    btnHelp.style.backgroundColor = "#f59e0b"; // Orange
+    btnHelp.style.color = "white";
+    btnHelp.style.borderRadius = "50px"; btnHelp.style.border = "none";
+    btnHelp.onclick = () => speak(explanation);
+
+    // Button 2: I Did It (Proceed)
+    let btnNext = document.createElement("button");
+    btnNext.innerText = "✅ I DID IT"; 
+    btnNext.style.padding = "15px 30px";
+    btnNext.style.fontSize = "18px"; btnNext.style.fontWeight = "bold";
+    btnNext.style.backgroundColor = "#22c55e"; // Green
+    btnNext.style.color = "white";
+    btnNext.style.borderRadius = "50px"; btnNext.style.border = "none";
+    
+    // Move to next step
+    btnNext.onclick = startCornersSolver;
+
+    div.appendChild(btnHelp);
+    div.appendChild(btnNext);
+    document.body.appendChild(div);
 }
 
 // --- PHASE 2: CORNERS (Uses corners-solver.js) ---
@@ -384,7 +380,6 @@ function startCornersSolver() {
     let virtualCode = "D"; // Code to update memory
 
     if (moveCode === "D" || moveCode === "Top Twist") {
-        // Note: In your logic, "Top Twist" often implies D/U rotation searching
         instructionText.innerText = "Rotate Bottom (Yellow) 🔄";
         speak("Rotate the bottom Yellow layer to find a matching corner.");
         showBottomRotateOverlay(); 
@@ -403,8 +398,10 @@ function startCornersSolver() {
         virtualCode = "L' U' L U";
     }
 
-    // Update Memory
-    virtualMove(virtualCode, cubeMap);
+    // Update Memory (We are updating memory here because Corners Solver relies on it!)
+    if (typeof virtualMove === "function") {
+        virtualMove(virtualCode, cubeMap);
+    }
 
     // Next Button
     let div = document.createElement("div");
@@ -430,7 +427,7 @@ function startMiddleLayerSolver() {
     instructionText.innerText = "Phase 3: Middle Layer";
     speak("Phase 3. Middle Layer edges.");
     
-    // Placeholder for now, waiting for Step 3 logic
+    // Placeholder for now
     let controlsDiv = createProceedButton(startYellowCrossSolver);
     document.body.appendChild(controlsDiv);
 }
@@ -580,7 +577,6 @@ function createManualControls(onHelp, onRepeat, onNext) {
 }
 
 function createCornerControls(onCase1, onCase2, onHelp, onRepeat, onNext) {
-    // Legacy manual controls - mostly unused now that we have auto-solver
     removeControls();
     let div = document.createElement("div");
     div.id = "solver-controls"; div.style.position = "fixed"; div.style.bottom = "10px";
