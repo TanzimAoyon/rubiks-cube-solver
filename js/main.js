@@ -58,7 +58,7 @@ function jumpToStep(stepNumber) {
     else if (stepNumber === 2) startCornersSolver();
 }
 
-// --- CAMERA & SCANNER (Standard) ---
+// --- CAMERA & SCANNER ---
 async function startCamera() { try { if (video.srcObject) return; const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } }); video.srcObject = s; video.onloadedmetadata = () => video.play(); } catch (err) { instructionText.innerText = "Camera Error: " + err.message; } }
 function stopCamera() { if (video.srcObject) { let t = video.srcObject.getTracks(); t.forEach(track => track.stop()); video.srcObject = null; } }
 function rgbToHsv(r, g, b) { r/=255,g/=255,b/=255; let max=Math.max(r,g,b),min=Math.min(r,g,b),h,s,v=max,d=max-min; s=max===0?0:d/max; if(max===min)h=0; else{ switch(max){ case r:h=(g-b)/d+(g<b?6:0);break; case g:h=(b-r)/d+2;break; case b:h=(r-g)/d+4;break; } h/=6; } return [h*360,s*100,v*100]; }
@@ -116,13 +116,13 @@ function startWhiteCross() {
     div.appendChild(btn); document.body.appendChild(div);
 }
 
-// --- PHASE 2: CORNERS (SPECIAL CASES & IMAGE FIX) ---
+// --- PHASE 2: CORNERS (UPDATED TEXT & LOGIC) ---
 function startCornersSolver() {
     let c = document.querySelector('.controls'); if (c) c.style.display = 'none'; removeControls();
     
     if (!window.hasFlipped) { speak("Flip cube: White on Bottom, Yellow on Top."); alert("FLIP: White Bottom, Yellow Top"); window.hasFlipped=true; }
 
-    let moveCode="U"; try{if(typeof getCornersMove==="function") moveCode=getCornersMove(cubeMap);}catch(e){}
+    let moveCode="NeedMatch"; try{if(typeof getCornersMove==="function") moveCode=getCornersMove(cubeMap);}catch(e){}
 
     if (moveCode==="DONE") {
         instructionText.innerText = "Corners Solved! ✅"; speak("First Layer Complete!");
@@ -134,32 +134,32 @@ function startCornersSolver() {
     let virtualCode = "D";
 
     // --- CASE LOGIC ---
-    if (moveCode === "U") {
-        instruction = "Rotate the Top Face until the sticker's side color matches the center.";
-        instructionText.innerText = "Rotate Top 🔄 Match Colors";
-        virtualCode = "D";
+    if (moveCode === "NeedMatch") {
+        instruction = "Identify the color next to the white sticker. Rotate the top face until this color diagonally matches the center piece of the same color. if theThe corner sticker is to the right of its center. Perform the Right Trigger , if The corner sticker is to the left of its center. Perform the Left Trigger";
+        instructionText.innerText = "Match Adjacent Colors 🔄";
+        virtualCode = "D"; // Physical Top rotation
     }
     else if (moveCode === "Right Trigger") {
-        instruction = "Match found! White is on the RIGHT. Perform Right Trigger: Right Up, Top Left, Right Down.";
+        instruction = "The corner sticker is to the right of its center. Perform the Right Trigger.";
         instructionText.innerText = "Right Trigger ⚡";
         virtualCode = "R D R'"; 
     }
     else if (moveCode === "Left Trigger") {
-        instruction = "Match found! White is on the LEFT. Perform Left Trigger: Left Up, Top Right, Left Down.";
+        instruction = "The corner sticker is to the left of its center. Perform the Left Trigger.";
         instructionText.innerText = "Left Trigger ⚡";
         virtualCode = "L' D' L"; 
     }
     // SPECIAL CASE 1: WHITE ON TOP
     else if (moveCode === "WhiteOnTop") {
-        instruction = "White sticker is on the TOP face. Rotate the top face until the white sticker is directly above a non-white sticker on the bottom face. Then, perform the Right Trigger TWICE.";
+        instruction = "White sticker is on top. Rotate top face until it's above a non-white bottom sticker. Then perform the trigger move twice.";
         instructionText.innerText = "White on Top ⚠️";
-        virtualCode = "R D R' R D R'"; // Approx logic for memory
+        virtualCode = "R D R' R D R'"; 
     }
     // SPECIAL CASE 2: STUCK BOTTOM
     else if (moveCode === "StuckBottom") {
-        instruction = "White sticker is stuck in the bottom layer. Perform a Right Trigger ONCE to move it to the top layer.";
+        instruction = "White sticker is on the bottom layer. Perform the trigger move once to move it to the top layer.";
         instructionText.innerText = "Stuck on Bottom ⚠️";
-        virtualCode = "R D R'"; // Pops it out
+        virtualCode = "R D R'"; 
     }
 
     speak(instruction);
@@ -168,7 +168,7 @@ function startCornersSolver() {
     let div = createDiv();
     div.style.flexDirection = "column"; div.style.gap = "10px";
 
-    // 1. TRIGGER IMAGES (Click to Enlarge)
+    // 1. TRIGGER IMAGES
     let imgRow = document.createElement("div");
     imgRow.style.display = "flex"; imgRow.style.gap = "15px"; imgRow.style.justifyContent = "center";
 
@@ -189,7 +189,7 @@ function startCornersSolver() {
     let ctrlRow = document.createElement("div");
     ctrlRow.style.display = "flex"; ctrlRow.style.gap = "10px";
 
-    let btnRepeat = createBtn("🎧 Instruction", "#f59e0b", () => speak(instruction));
+    let btnRepeat = createBtn("🎧 Repeat", "#f59e0b", () => speak(instruction));
     let btnNext = createBtn("NEXT ➡️", "#22c55e", () => {
         if(typeof virtualMove==="function") virtualMove(virtualCode, cubeMap);
         startCornersSolver();
@@ -205,38 +205,23 @@ function startCornersSolver() {
 
 // --- HELPER: FIXED IMAGE OVERLAY ---
 function showImageOverlay(src, title) {
-    // 1. Remove ANY existing overlay first (Fixes the "First click only" bug)
-    let old = document.getElementById('img-overlay');
-    if (old) old.remove();
-
-    // 2. Create New
+    let old = document.getElementById('img-overlay'); if (old) old.remove(); // Fix duplicate bug
     let overlay = document.createElement("div");
     overlay.id = "img-overlay";
     overlay.style.position = "fixed"; overlay.style.top = "0"; overlay.style.left = "0";
     overlay.style.width = "100%"; overlay.style.height = "100%";
     overlay.style.backgroundColor = "rgba(0,0,0,0.9)";
-    overlay.style.zIndex = "10000"; // Very high
+    overlay.style.zIndex = "10000"; 
     overlay.style.display = "flex"; overlay.style.flexDirection = "column";
     overlay.style.justifyContent = "center"; overlay.style.alignItems = "center";
-    
-    // Close on click
     overlay.onclick = () => overlay.remove();
 
-    let h2 = document.createElement("h2");
-    h2.innerText = title; h2.style.color = "white"; h2.style.marginBottom = "20px";
+    let h2 = document.createElement("h2"); h2.innerText = title; h2.style.color = "white"; h2.style.marginBottom = "20px";
+    let img = document.createElement("img"); img.src = src; 
+    img.style.width = "80%"; img.style.maxWidth = "400px"; img.style.border = "4px solid white"; img.style.borderRadius = "10px";
+    let hint = document.createElement("p"); hint.innerText = "(Tap anywhere to close)"; hint.style.color = "#aaa"; hint.style.marginTop = "20px";
 
-    let img = document.createElement("img");
-    img.src = src; 
-    img.style.width = "80%"; img.style.maxWidth = "400px"; 
-    img.style.border = "4px solid white"; img.style.borderRadius = "10px";
-
-    let hint = document.createElement("p");
-    hint.innerText = "(Tap anywhere to close)";
-    hint.style.color = "#aaa"; hint.style.marginTop = "20px";
-
-    overlay.appendChild(h2);
-    overlay.appendChild(img);
-    overlay.appendChild(hint);
+    overlay.appendChild(h2); overlay.appendChild(img); overlay.appendChild(hint);
     document.body.appendChild(overlay);
 }
 

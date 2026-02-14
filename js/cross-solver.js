@@ -1,69 +1,54 @@
-// js/cross-solver.js - STRICT VICTORY CHECK
+// js/corners-solver.js - STRICT STATE DETECTION
 
-let lastMove = ""; 
-
-function getCrossMove(cube) {
-    // 1. STRICT VICTORY CHECK
-    // We don't just count white stickers. We verify they match the side centers.
-    // Remember: Internal 'up' is the Physical 'Down' (White Face).
+function getCornersMove(cube) {
+    // MAPPING: Physical Top = Memory Down (Yellow) | Physical Bottom = Memory Up (White)
     
-    let isFrontSolved = (cube.up[7] === 'W' && cube.front[1] === cube.front[4]);
-    let isRightSolved = (cube.up[5] === 'W' && cube.right[1] === cube.right[4]);
-    let isBackSolved  = (cube.up[1] === 'W' && cube.back[1]  === cube.back[4]);
-    let isLeftSolved  = (cube.up[3] === 'W' && cube.left[1]  === cube.left[4]);
+    // 1. VICTORY CHECK
+    let solved = 0;
+    if (cube.up[8] === 'W' && cube.front[2] === cube.front[4] && cube.right[0] === cube.right[4]) solved++;
+    if (cube.up[6] === 'W' && cube.front[0] === cube.front[4] && cube.left[2]  === cube.left[4]) solved++;
+    if (cube.up[2] === 'W' && cube.back[0]  === cube.back[4]  && cube.right[2] === cube.right[4]) solved++;
+    if (cube.up[0] === 'W' && cube.back[2]  === cube.back[4]  && cube.left[0]  === cube.left[4]) solved++;
+    if (solved === 4) return "DONE";
 
-    if (isFrontSolved && isRightSolved && isBackSolved && isLeftSolved) {
-        return "DONE";
+    // 2. CHECK FOR MATCHED CORNERS (Ready to Trigger)
+    // We prioritize these so the user sees "Do Trigger" immediately if matched.
+    
+    // Front-Right Corner (White on Front)
+    if (cube.front[8] === 'W' && cube.right[6] === cube.right[4]) return "Left Trigger"; 
+    // Front-Right Corner (White on Right)
+    if (cube.right[6] === 'W' && cube.front[8] === cube.front[4]) return "Right Trigger";
+    
+    // Front-Left Corner (White on Front)
+    if (cube.front[6] === 'W' && cube.left[8] === cube.left[4]) return "Right Trigger";
+    // Front-Left Corner (White on Left)
+    if (cube.left[8] === 'W' && cube.front[6] === cube.front[4]) return "Left Trigger";
+
+    // Back Corners (Simplified)
+    if (cube.back[6] === 'W' && cube.right[8] === cube.right[4]) return "Right Trigger";
+    if (cube.right[8] === 'W' && cube.back[6] === cube.back[4]) return "Left Trigger";
+    if (cube.back[8] === 'W' && cube.left[6] === cube.left[4]) return "Left Trigger";
+    if (cube.left[6] === 'W' && cube.back[8] === cube.back[4]) return "Right Trigger";
+
+    // 3. CHECK FOR UNMATCHED SIDE STICKERS (Need Rotation)
+    // If we see a white sticker on the side (Front/Right/Left/Back) but it wasn't caught above,
+    // it means it exists but needs matching.
+    if (cube.front[8] === 'W' || cube.right[6] === 'W' || 
+        cube.front[6] === 'W' || cube.left[8] === 'W' ||
+        cube.back[6] === 'W' || cube.right[8] === 'W' ||
+        cube.back[8] === 'W' || cube.left[6] === 'W') {
+        return "NeedMatch"; // Specific code for "Rotate Top until matches"
     }
 
-    // 2. Define the 4 positions on the Yellow Face (Down)
-    const positions = [
-        { id: 1, sideFace: 'front', sideIdx: 7, move: 'F2' },
-        { id: 5, sideFace: 'right', sideIdx: 7, move: 'R2' },
-        { id: 7, sideFace: 'back',  sideIdx: 7, move: 'B2' },
-        { id: 3, sideFace: 'left',  sideIdx: 7, move: 'L2' }
-    ];
-
-    // 3. PRIORITY 1: Match & Solve
-    for (let pos of positions) {
-        if (cube.down[pos.id] === 'W') {
-            let sideColor = cube[pos.sideFace][pos.sideIdx];
-            let centerColor = cube[pos.sideFace][4];
-            
-            if (sideColor === centerColor) {
-                // If it's already solved (e.g. Front is done), don't do F2 again!
-                // We check if that slot is already filled correctly.
-                let isSlotSolved = false;
-                if (pos.sideFace === 'front' && isFrontSolved) isSlotSolved = true;
-                if (pos.sideFace === 'right' && isRightSolved) isSlotSolved = true;
-                if (pos.sideFace === 'back'  && isBackSolved)  isSlotSolved = true;
-                if (pos.sideFace === 'left'  && isLeftSolved)  isSlotSolved = true;
-
-                if (isSlotSolved) continue; // Skip this move, it's already down there!
-
-                // Safety Check for loops
-                if (lastMove === pos.move) {
-                     console.log("Loop detected! Forcing rotation.");
-                     lastMove = "D";
-                     return "D"; 
-                }
-                
-                lastMove = pos.move; 
-                return pos.move; 
-            }
-        }
+    // 4. SPECIAL CASE: White on Top (Facing Yellow Up)
+    if (cube.down[0] === 'W' || cube.down[2] === 'W' || cube.down[6] === 'W' || cube.down[8] === 'W') {
+        return "WhiteOnTop";
     }
 
-    // 4. PRIORITY 2: Rotate to find match
-    let petalFound = false;
-    for (let pos of positions) {
-        if (cube.down[pos.id] === 'W') petalFound = true;
+    // 5. SPECIAL CASE: Stuck in Bottom (Wrong Spot)
+    if (cube.front[2] === 'W' || cube.right[0] === 'W' || cube.front[0] === 'W' || cube.left[2] === 'W') {
+        return "StuckBottom"; 
     }
 
-    if (petalFound) {
-        lastMove = "D";
-        return "D";
-    }
-
-    return "Check Middle Layer";
+    return "NeedMatch"; // Default fallback
 }
