@@ -64,9 +64,9 @@ function enterMainApp() {
     instructionText.style.color = "white";
     speak("Show Green Center, then Scan.");
     
-    // SHOW SCAN CONTROLS
+    // FORCE SHOW SCAN BUTTON
     let controlsDiv = document.querySelector('.controls');
-    if (controlsDiv) controlsDiv.style.display = 'flex'; // Make sure container is visible
+    if (controlsDiv) controlsDiv.style.display = 'flex';
     
     if(scanBtn) {
         scanBtn.style.display = "block";
@@ -90,10 +90,9 @@ function jumpToStep(stepNumber) {
     document.getElementById('steps-menu').style.display = 'none';
     document.getElementById('main-app').style.display = 'block';
     
-    // HIDE SCAN BUTTON IMMEDIATELY
+    // FORCE HIDE SCAN BUTTON
     let controlsDiv = document.querySelector('.controls');
     if (controlsDiv) controlsDiv.style.display = 'none';
-    
     removeControls();
 
     if (stepNumber === 1) enterMainApp();
@@ -146,9 +145,7 @@ function rgbToHsv(r, g, b) {
 
 function detectColor(r, g, b) {
     const [h, s, v] = rgbToHsv(r, g, b);
-    // 1. WHITE Check
     if (s < 25 && v > 45) return 'W'; 
-    // 2. COLORS
     if (h >= 0 && h < 15) return 'R'; 
     if (h >= 345 && h <= 360) return 'R'; 
     if (h >= 15 && h < 45) return 'O'; 
@@ -187,7 +184,6 @@ function scanFace() {
         }
     }
 
-    // STRICT VALIDATION
     const centerColorCode = currentScan[4]; 
     const expectedSideName = scanOrder[currentSideIndex]; 
     const expectedColorName = sideColors[expectedSideName]; 
@@ -221,12 +217,10 @@ function scanFace() {
     } else {
         isScanning = false;
         
-        // CHECK DAISY
         let daisyFound = false;
         if (typeof isDaisySolved === 'function') {
             daisyFound = isDaisySolved(cubeMap);
         } else {
-             // Fallback Logic
              let down = cubeMap.down; 
              if (down && down.length >= 9) {
                  daisyFound = (down[4] === 'Y' && down[1] === 'W' && down[3] === 'W' && down[5] === 'W' && down[7] === 'W');
@@ -275,55 +269,91 @@ function startDaisySolver() {
     };
 }
 
-// --- PHASE 1.5: WHITE CROSS (FIXED: General Instruction Mode) ---
+// --- PHASE 1.5: WHITE CROSS (BLIND PILOT MODE) ---
 function startWhiteCross() {
-    // 1. FIX THE UI GLITCH: Force Hide the Yellow Scan Button Container
+    // 1. CLEANUP UI: Force Hide the Yellow Scan Button Container
     let controlsDiv = document.querySelector('.controls');
     if (controlsDiv) controlsDiv.style.display = 'none';
-    
-    removeControls(); // Clear old dynamic buttons
+    removeControls(); 
 
-    // 2. The Detailed Instruction
-    const explanation = "Rotate the yellow top face until a white petal's side color matches the center color below it. Then rotate that face 180 degrees downwards. Do this for all four petals.";
+    // 2. GET LOGIC (Memory Based)
+    let move = "DONE";
+    try {
+        if (typeof getCrossMove === "function") {
+            move = getCrossMove(cubeMap);
+        }
+    } catch(e) { console.error(e); }
 
-    // 3. UI Updates
-    instructionText.innerText = "Match Centers & Turn Down 2x";
-    speak(explanation);
+    // 3. DONE CHECK
+    if (move === "DONE") {
+        speak("Cross completed! Great job. Proceeding to corners.");
+        instructionText.innerText = "Cross Done! ✅";
+        
+        // Show Proceed Button
+        let div = document.createElement("div");
+        div.id = "solver-controls"; div.style.position = "fixed"; div.style.bottom = "20px";
+        div.style.width = "100%"; div.style.display = "flex"; div.style.justifyContent = "center"; div.style.zIndex = "9999";
+        let btn = document.createElement("button");
+        btn.innerText = "GO TO CORNERS ➡️"; 
+        btn.style.padding = "15px 40px"; btn.style.fontSize = "18px"; btn.style.fontWeight = "bold";
+        btn.style.backgroundColor = "#2563eb"; btn.style.color = "white"; btn.style.borderRadius = "50px"; btn.style.border = "none";
+        btn.onclick = startCornersSolver;
+        div.appendChild(btn);
+        document.body.appendChild(div);
+        return;
+    }
 
-    // 4. Create Buttons
+    // 4. INSTRUCTION LOGIC (No Camera Checks)
+    if (move === "U") {
+        instructionText.innerText = "Rotate Top 🔄 (Finding Match)";
+        speak("Rotate the Yellow Top Clockwise once.");
+    } 
+    else if (move === "D") {
+        instructionText.innerText = "Rotate Bottom 🔄";
+        speak("Rotate the Yellow Face Clockwise.");
+    }
+    else if (move.includes("2")) {
+        let faceLetter = move[0];
+        let colorName = "";
+        if (faceLetter === 'F') colorName = "Green";
+        if (faceLetter === 'R') colorName = "Red";
+        if (faceLetter === 'L') colorName = "Orange";
+        if (faceLetter === 'B') colorName = "Blue";
+        
+        instructionText.innerText = `Match! Turn ${colorName} 2x`;
+        speak(`Match found on ${colorName}! Turn the ${colorName} face two times.`);
+    } 
+    else {
+        instructionText.innerText = `Perform Move: ${move}`;
+        speak(`Perform the move: ${move}`);
+    }
+
+    // 5. BLIND BUTTON (Next Step)
     let div = document.createElement("div");
     div.id = "solver-controls"; 
     div.style.position = "fixed"; div.style.bottom = "20px";
-    div.style.width = "100%"; div.style.display = "flex"; 
-    div.style.justifyContent = "center"; div.style.gap = "15px"; 
-    div.style.zIndex = "9999";
+    div.style.width = "100%"; div.style.display = "flex"; div.style.justifyContent = "center"; div.style.zIndex = "9999";
     
-    // Help Button
-    let btnHelp = document.createElement("button");
-    btnHelp.innerText = "🎧 INSTRUCTION"; 
-    btnHelp.style.padding = "15px 20px"; btnHelp.style.fontSize = "16px"; btnHelp.style.fontWeight = "bold";
-    btnHelp.style.backgroundColor = "#f59e0b"; btnHelp.style.color = "white";
-    btnHelp.style.borderRadius = "50px"; btnHelp.style.border = "none";
-    btnHelp.onclick = () => speak(explanation);
-
-    // Done Button
     let btnNext = document.createElement("button");
-    btnNext.innerText = "✅ I DID IT"; 
+    btnNext.innerText = "NEXT ➡️"; 
     btnNext.style.padding = "15px 30px"; btnNext.style.fontSize = "18px"; btnNext.style.fontWeight = "bold";
     btnNext.style.backgroundColor = "#22c55e"; btnNext.style.color = "white";
     btnNext.style.borderRadius = "50px"; btnNext.style.border = "none";
     
-    // Move to Corners
-    btnNext.onclick = startCornersSolver;
+    // ACTION: Update Memory & Loop
+    btnNext.onclick = () => {
+        if (typeof virtualMove === "function") {
+            virtualMove(move, cubeMap); // Trust the user did it
+        }
+        startWhiteCross(); // Recursion
+    };
 
-    div.appendChild(btnHelp);
     div.appendChild(btnNext);
     document.body.appendChild(div);
 }
 
-// --- PHASE 2: CORNERS (Uses corners-solver.js) ---
+// --- PHASE 2: CORNERS ---
 function startCornersSolver() {
-    // Hide Scan Button logic
     let controlsDiv = document.querySelector('.controls');
     if (controlsDiv) controlsDiv.style.display = 'none';
     removeControls();
@@ -332,23 +362,17 @@ function startCornersSolver() {
     try {
         if (typeof getCornersMove === "function") {
             moveCode = getCornersMove(cubeMap);
-        } else {
-            console.error("Missing corners-solver.js!");
-            return;
         }
     } catch(e) { console.error(e); }
 
-    // Victory Check
     if (moveCode === "DONE") {
         instructionText.innerText = "Corners Solved! ✅";
         speak("First Layer Complete! Great job. Moving to Middle Layer.");
-        
         let div = createProceedButton(startMiddleLayerSolver);
         document.body.appendChild(div);
         return;
     }
 
-    // Instruction Logic
     let virtualCode = "D"; 
 
     if (moveCode === "D" || moveCode === "Top Twist") {
@@ -370,18 +394,17 @@ function startCornersSolver() {
         virtualCode = "L' U' L U";
     }
 
-    // Update Memory
+    // BLIND UPDATE MEMORY
     if (typeof virtualMove === "function") {
         virtualMove(virtualCode, cubeMap);
     }
 
-    // Next Button (Loop back to check next move)
     let div = document.createElement("div");
     div.id = "solver-controls"; div.style.position = "fixed"; div.style.bottom = "20px";
     div.style.width = "100%"; div.style.display = "flex"; div.style.justifyContent = "center"; div.style.zIndex = "200";
     
     let btn = document.createElement("button");
-    btn.innerText = "NEXT MOVE ➡️"; 
+    btn.innerText = "NEXT ➡️"; 
     btn.style.padding = "15px 40px"; btn.style.fontSize = "18px"; btn.style.fontWeight = "bold";
     btn.style.backgroundColor = "#2563eb"; btn.style.color = "white";
     btn.style.borderRadius = "50px"; btn.style.border = "none";
@@ -399,7 +422,6 @@ function startMiddleLayerSolver() {
     removeControls(); 
     instructionText.innerText = "Phase 3: Middle Layer";
     speak("Phase 3. Middle Layer edges.");
-    
     let controls = createProceedButton(startYellowCrossSolver);
     document.body.appendChild(controls);
 }
@@ -495,12 +517,10 @@ function showBottomRotateOverlay() {
     setTimeout(() => { if(o) o.remove(); }, 3000);
 }
 
-// CLEAR FUNCTIONS
 function removeTriggerOverlay() { removeEl("trigger-overlay"); }
 function removeControls() { removeEl("solver-controls"); }
 function removeEl(id) { let el = document.getElementById(id); if(el) el.remove(); }
 
-// --- UI HELPERS ---
 function createManualControls(onHelp, onRepeat, onNext) {
     removeControls();
     let div = document.createElement("div");
