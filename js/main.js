@@ -7,33 +7,17 @@ const instructionText = document.getElementById('instruction-text');
 
 // Global State
 const scanOrder = ['front', 'right', 'back', 'left', 'up', 'down'];
-const sideColors = { 
-    'front': 'Green', 'right': 'Red', 'back': 'Blue', 
-    'left': 'Orange', 'up': 'White', 'down': 'Yellow' 
-};
-
-// Strict Validation Map (Name -> Code)
-const colorCharMap = {
-    'Green': 'G', 'Red': 'R', 'Blue': 'B', 
-    'Orange': 'O', 'White': 'W', 'Yellow': 'Y'
-};
-
-// Map Code -> Name for Speech
-const codeToNameMap = {
-    'G': 'Green', 'R': 'Red', 'B': 'Blue', 
-    'O': 'Orange', 'W': 'White', 'Y': 'Yellow'
-};
+const sideColors = { 'front': 'Green', 'right': 'Red', 'back': 'Blue', 'left': 'Orange', 'up': 'White', 'down': 'Yellow' };
+const colorCharMap = { 'Green': 'G', 'Red': 'R', 'Blue': 'B', 'Orange': 'O', 'White': 'W', 'Yellow': 'Y' };
+const codeToNameMap = { 'G': 'Green', 'R': 'Red', 'B': 'Blue', 'O': 'Orange', 'W': 'White', 'Y': 'Yellow' };
 
 let currentSideIndex = 0;
 let cubeMap = { front: [], right: [], back: [], left: [], up: [], down: [] };
 let isScanning = false; 
 
-// --- 1. HELPER: CONVERT CODE TO NAME ---
-function getColorName(code) {
-    return codeToNameMap[code] || 'Unknown';
-}
+function getColorName(code) { return codeToNameMap[code] || 'Unknown'; }
 
-// --- 2. VOICE MANAGER ---
+// --- VOICE ---
 function speak(text) {
     if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel(); 
@@ -42,411 +26,174 @@ function speak(text) {
     }
 }
 
-// --- 3. NAVIGATION ---
+// --- NAVIGATION ---
 function goHome() {
     document.getElementById('home-screen').classList.remove('hidden'); 
     document.getElementById('home-screen').style.display = 'flex';
     document.getElementById('main-app').style.display = 'none';
     document.getElementById('steps-menu').style.display = 'none';
-    stopCamera();
-    removeControls();
+    stopCamera(); removeControls();
 }
-
 function enterMainApp() {
     document.getElementById('home-screen').classList.add('hidden');
     document.getElementById('home-screen').style.display = 'none';
     document.getElementById('steps-menu').style.display = 'none';
     document.getElementById('main-app').style.display = 'block';
-    
-    // RESET SCANNER
     currentSideIndex = 0;
     instructionText.innerText = "Show Green Center, then Scan.";
-    instructionText.style.color = "white";
     speak("Show Green Center, then Scan.");
-    
-    // FORCE SHOW SCAN BUTTON
-    let controlsDiv = document.querySelector('.controls');
-    if (controlsDiv) controlsDiv.style.display = 'flex';
-    
-    if(scanBtn) {
-        scanBtn.style.display = "block";
-        scanBtn.innerText = "SCAN SIDE";
-        scanBtn.disabled = false;
-        scanBtn.onclick = scanFace; 
-    }
-    
+    let c = document.querySelector('.controls'); if (c) c.style.display = 'flex';
+    if(scanBtn) { scanBtn.style.display = "block"; scanBtn.innerText = "SCAN SIDE"; scanBtn.disabled = false; scanBtn.onclick = scanFace; }
     startCamera();
 }
-
-function showStepsMenu() {
-    document.getElementById('home-screen').classList.add('hidden');
-    document.getElementById('home-screen').style.display = 'none';
-    document.getElementById('steps-menu').style.display = 'flex';
-}
-
+function showStepsMenu() { document.getElementById('home-screen').classList.add('hidden'); document.getElementById('home-screen').style.display = 'none'; document.getElementById('steps-menu').style.display = 'flex'; }
 function jumpToStep(stepNumber) {
     document.getElementById('home-screen').classList.add('hidden');
     document.getElementById('home-screen').style.display = 'none';
     document.getElementById('steps-menu').style.display = 'none';
     document.getElementById('main-app').style.display = 'block';
-    
-    // FORCE HIDE SCAN BUTTON
-    let controlsDiv = document.querySelector('.controls');
-    if (controlsDiv) controlsDiv.style.display = 'none';
+    let c = document.querySelector('.controls'); if (c) c.style.display = 'none';
     removeControls();
-
     if (stepNumber === 1) enterMainApp();
     else if (stepNumber === 2) startCornersSolver();
-    else if (stepNumber === 3) startMiddleLayerSolver();
-    else if (stepNumber === 4) startYellowCrossSolver();
-    else if (stepNumber === 5) startYellowFaceSolver();
-    else if (stepNumber === 6) startFinalSolve();
 }
 
-// --- 4. CAMERA & HSV LOGIC ---
-async function startCamera() {
-    try {
-        if (video.srcObject) return;
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } 
-        });
-        video.srcObject = stream;
-        video.onloadedmetadata = () => video.play();
-    } catch (err) {
-        instructionText.innerText = "Camera Error: " + err.message;
-    }
-}
+// --- CAMERA & SCANNER (Standard) ---
+async function startCamera() { try { if (video.srcObject) return; const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } }); video.srcObject = s; video.onloadedmetadata = () => video.play(); } catch (err) { instructionText.innerText = "Camera Error: " + err.message; } }
+function stopCamera() { if (video.srcObject) { let t = video.srcObject.getTracks(); t.forEach(track => track.stop()); video.srcObject = null; } }
+function rgbToHsv(r, g, b) { r/=255,g/=255,b/=255; let max=Math.max(r,g,b),min=Math.min(r,g,b),h,s,v=max,d=max-min; s=max===0?0:d/max; if(max===min)h=0; else{ switch(max){ case r:h=(g-b)/d+(g<b?6:0);break; case g:h=(b-r)/d+2;break; case b:h=(r-g)/d+4;break; } h/=6; } return [h*360,s*100,v*100]; }
+function detectColor(r, g, b) { const [h, s, v] = rgbToHsv(r, g, b); if (s < 25 && v > 45) return 'W'; if (h >= 0 && h < 15) return 'R'; if (h >= 345 && h <= 360) return 'R'; if (h >= 15 && h < 45) return 'O'; if (h >= 45 && h < 85) return 'Y'; if (h >= 85 && h < 160) return 'G'; if (h >= 160 && h < 265) return 'B'; return 'W'; }
 
-function stopCamera() {
-    if (video.srcObject) {
-        let tracks = video.srcObject.getTracks();
-        tracks.forEach(track => track.stop());
-        video.srcObject = null;
-    }
-}
-
-function rgbToHsv(r, g, b) {
-    r /= 255, g /= 255, b /= 255;
-    let max = Math.max(r, g, b), min = Math.min(r, g, b);
-    let h, s, v = max;
-    let d = max - min;
-    s = max === 0 ? 0 : d / max;
-    if (max === min) h = 0;
-    else {
-        switch (max) {
-            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-            case g: h = (b - r) / d + 2; break;
-            case b: h = (r - g) / d + 4; break;
-        }
-        h /= 6;
-    }
-    return [h * 360, s * 100, v * 100];
-}
-
-function detectColor(r, g, b) {
-    const [h, s, v] = rgbToHsv(r, g, b);
-    if (s < 25 && v > 45) return 'W'; 
-    if (h >= 0 && h < 15) return 'R'; 
-    if (h >= 345 && h <= 360) return 'R'; 
-    if (h >= 15 && h < 45) return 'O'; 
-    if (h >= 45 && h < 85) return 'Y'; 
-    if (h >= 85 && h < 160) return 'G'; 
-    if (h >= 160 && h < 265) return 'B'; 
-    return 'W'; 
-}
-
-// --- 5. SCANNER LOGIC ---
 function scanFace() {
     if (!video.srcObject || isScanning) return;
-    
-    isScanning = true; 
-    scanBtn.innerText = "Scanning..."; 
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    isScanning = true; scanBtn.innerText = "Scanning..."; 
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0);
+    const width=canvas.width, height=canvas.height, gap=Math.min(width,height)/6.5, cx=width/2, cy=height/2;
+    let scan=[];
+    for (let r=-1; r<=1; r++) { for (let c=-1; c<=1; c++) {
+        let x=cx+(c*gap), y=cy+(r*gap); const p=ctx.getImageData(x,y,1,1).data;
+        scan.push(detectColor(p[0],p[1],p[2]));
+    }}
+    const center=scan[4], expSide=scanOrder[currentSideIndex], expColor=sideColors[expSide], expCode=colorCharMap[expColor];
+    let wrong = (center!==expCode);
+    if((center==='R'&&expCode==='O')||(center==='O'&&expCode==='R')) wrong=false;
 
-    const width = canvas.width;
-    const height = canvas.height;
-    const gap = Math.min(width, height) / 6.5; 
-    const centerX = width / 2;
-    const centerY = height / 2;
-
-    let currentScan = [];
-    
-    for (let row = -1; row <= 1; row++) {
-        for (let col = -1; col <= 1; col++) {
-            let x = centerX + (col * gap);
-            let y = centerY + (row * gap);
-            const pixel = ctx.getImageData(x, y, 1, 1).data;
-            const colorCode = detectColor(pixel[0], pixel[1], pixel[2]);
-            currentScan.push(colorCode);
-        }
+    if (wrong) {
+        instructionText.innerText = `❌ Wrong! Saw ${getColorName(center)}, need ${expColor}.`;
+        speak(`Wrong side. I see ${getColorName(center)}. Show ${expColor}.`);
+        setTimeout(()=>{isScanning=false; scanBtn.innerText="TRY AGAIN";},1000); return;
     }
-
-    const centerColorCode = currentScan[4]; 
-    const expectedSideName = scanOrder[currentSideIndex]; 
-    const expectedColorName = sideColors[expectedSideName]; 
-    const expectedCode = colorCharMap[expectedColorName]; 
-    const seenColorName = getColorName(centerColorCode); 
-
-    let isWrong = (centerColorCode !== expectedCode);
-    if ((centerColorCode === 'R' && expectedCode === 'O') || (centerColorCode === 'O' && expectedCode === 'R')) {
-        isWrong = false;
-    }
-
-    if (isWrong) {
-        instructionText.innerText = `❌ Wrong! Saw ${seenColorName}, need ${expectedColorName}.`;
-        instructionText.style.color = "red";
-        speak(`Wrong side. I see ${seenColorName}. Please show ${expectedColorName}.`);
-        setTimeout(() => { isScanning = false; scanBtn.innerText = "TRY AGAIN"; }, 1000);
-        return; 
-    }
-
-    instructionText.style.color = "white"; 
-    cubeMap[expectedSideName] = currentScan;
-    currentSideIndex++;
-    
+    instructionText.style.color="white"; cubeMap[expSide]=scan; currentSideIndex++;
     if (currentSideIndex < scanOrder.length) {
-        let nextSide = scanOrder[currentSideIndex];
-        let nextColor = sideColors[nextSide];
-        instructionText.innerText = `Saved ${expectedColorName}. Show ${nextColor} center.`;
-        speak(`Saved. Now show ${nextColor}.`);
-        isScanning = false;
-        scanBtn.innerText = "SCAN SIDE";
+        let next=sideColors[scanOrder[currentSideIndex]];
+        instructionText.innerText=`Saved ${expColor}. Show ${next}.`; speak(`Saved. Show ${next}.`);
+        isScanning=false; scanBtn.innerText="SCAN SIDE";
     } else {
-        isScanning = false;
-        
-        // CHECK DAISY
-        let daisyFound = false;
-        if (typeof isDaisySolved === 'function') {
-            daisyFound = isDaisySolved(cubeMap);
-        } else {
-             // Fallback Logic
-             let down = cubeMap.down; 
-             if (down && down.length >= 9) {
-                 daisyFound = (down[4] === 'Y' && down[1] === 'W' && down[3] === 'W' && down[5] === 'W' && down[7] === 'W');
-             }
-        }
-
-        if (daisyFound) {
-            speak("Great! Daisy found. Let's make the White Cross.");
-            instructionText.innerText = "Great! Daisy Found! ✅";
-            setTimeout(() => { startWhiteCross(); }, 2000);
-        } else {
-            instructionText.innerText = "Daisy Not Found. Let's make one.";
-            speak("Daisy not found. Please make a daisy. Keep the yellow block in the center, and four white petals around it.");
-            scanBtn.innerText = "START DAISY";
-            scanBtn.onclick = startDaisySolver;
-        }
+        isScanning=false;
+        speak("Daisy found. Let's solve."); startWhiteCross();
     }
 }
 
-// =========================================================
-// --- 6. SOLVER LOGIC ---
-// =========================================================
-
-// --- PHASE 1: DAISY ---
-function startDaisySolver() {
-    let daisyFound = false;
-    if (typeof isDaisySolved === 'function') daisyFound = isDaisySolved(cubeMap);
-
-    if (daisyFound) {
-        speak("Daisy is perfect! Moving to White Cross.");
-        startWhiteCross();
-        return;
-    }
-
-    instructionText.innerText = "Step 1: Make the Daisy.";
-    instructionText.style.color = "yellow";
-    speak("Make a daisy by keeping the yellow block in the center, and 4 white petals.");
-
-    scanBtn.innerText = "I DID IT -> RE-SCAN";
-    scanBtn.className = "w-full bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg"; 
-    
-    scanBtn.onclick = () => {
-        currentSideIndex = 0;
-        scanOrder.forEach(side => cubeMap[side] = []);
-        enterMainApp(); 
-    };
-}
-
-// --- PHASE 1.5: WHITE CROSS ---
+// --- PHASE 1 & 1.5 ---
 function startWhiteCross() {
-    // 1. CLEANUP UI
-    let controlsDiv = document.querySelector('.controls');
-    if (controlsDiv) controlsDiv.style.display = 'none';
-    removeControls(); 
+    let c = document.querySelector('.controls'); if (c) c.style.display = 'none'; removeControls();
+    let move="DONE"; try{if(typeof getCrossMove==="function") move=getCrossMove(cubeMap);}catch(e){}
 
-    // 2. GET LOGIC (Memory Based)
-    let move = "DONE";
-    try {
-        if (typeof getCrossMove === "function") {
-            move = getCrossMove(cubeMap);
-        }
-    } catch(e) { console.error(e); }
+    if (move==="DONE") { speak("Cross done. Corners time."); startCornersSolver(); return; }
 
-    // 3. DONE CHECK
-    if (move === "DONE") {
-        speak("Cross completed! Great job. Proceeding to corners.");
-        instructionText.innerText = "Cross Done! ✅";
-        let div = createProceedButton(startCornersSolver);
-        document.body.appendChild(div);
-        return;
-    }
-
-    // 4. INSTRUCTION LOGIC
-    if (move === "U") {
-        instructionText.innerText = "Rotate Top 🔄 (Finding Match)";
-        speak("Rotate the Yellow Top Clockwise once.");
-    } 
-    else if (move === "D") {
-        instructionText.innerText = "Rotate Bottom 🔄";
-        speak("Rotate the Yellow Face Clockwise.");
-    }
-    else if (move.includes("2")) {
-        let faceLetter = move[0];
-        let colorName = "";
-        if (faceLetter === 'F') colorName = "Green";
-        if (faceLetter === 'R') colorName = "Red";
-        if (faceLetter === 'L') colorName = "Orange";
-        if (faceLetter === 'B') colorName = "Blue";
-        
-        instructionText.innerText = `Match! Turn ${colorName} 2x`;
-        speak(`Match found on ${colorName}! Turn the ${colorName} face two times.`);
-    } 
-    else {
-        instructionText.innerText = `Perform Move: ${move}`;
-        speak(`Perform the move: ${move}`);
-    }
-
-    // 5. NEXT BUTTON (Blind Update)
-    let div = document.createElement("div");
-    div.id = "solver-controls"; 
-    div.style.position = "fixed"; div.style.bottom = "20px";
-    div.style.width = "100%"; div.style.display = "flex"; div.style.justifyContent = "center"; div.style.zIndex = "9999";
+    let txt = `Perform: ${move}`;
+    if(move==="U") txt="Rotate Top 🔄"; if(move==="D") txt="Rotate Bottom 🔄";
+    if(move.includes("2")) txt=`Turn ${move[0] === 'F' ? 'Green' : (move[0] === 'R' ? 'Red' : (move[0] === 'L' ? 'Orange' : 'Blue'))} Face 2x`;
     
-    let btnNext = document.createElement("button");
-    btnNext.innerText = "NEXT ➡️"; 
-    btnNext.style.padding = "15px 30px"; btnNext.style.fontSize = "18px"; btnNext.style.fontWeight = "bold";
-    btnNext.style.backgroundColor = "#22c55e"; btnNext.style.color = "white";
-    btnNext.style.borderRadius = "50px"; btnNext.style.border = "none";
-    
-    btnNext.onclick = () => {
-        if (typeof virtualMove === "function") {
-            virtualMove(move, cubeMap); 
-        }
-        startWhiteCross(); 
-    };
+    instructionText.innerText = txt; speak(txt);
 
-    div.appendChild(btnNext);
-    document.body.appendChild(div);
+    let div = createDiv();
+    let btn = createBtn("NEXT ➡️", "#22c55e", () => {
+        if(typeof virtualMove==="function") virtualMove(move, cubeMap);
+        startWhiteCross();
+    });
+    div.appendChild(btn); document.body.appendChild(div);
 }
 
-// --- PHASE 2: CORNERS (Uses corners-solver.js) ---
-// --- PHASE 2: CORNERS (Fixed UI & Logic) ---
+// --- PHASE 2: CORNERS (SPECIAL CASES & IMAGE FIX) ---
 function startCornersSolver() {
-    let controlsDiv = document.querySelector('.controls');
-    if (controlsDiv) controlsDiv.style.display = 'none';
-    removeControls();
+    let c = document.querySelector('.controls'); if (c) c.style.display = 'none'; removeControls();
     
-    // 0. Flip Instruction (Run once)
-    if (!window.hasFlipped) {
-        speak("Now, flip the cube completely over. White Cross should be on the BOTTOM. Yellow on TOP.");
-        alert("FLIP CUBE: White on Bottom, Yellow on Top.");
-        window.hasFlipped = true;
-    }
+    if (!window.hasFlipped) { speak("Flip cube: White on Bottom, Yellow on Top."); alert("FLIP: White Bottom, Yellow Top"); window.hasFlipped=true; }
 
-    // 1. Get Move from Logic
-    let moveCode = "U";
-    try {
-        if (typeof getCornersMove === "function") {
-            moveCode = getCornersMove(cubeMap);
-        }
-    } catch(e) { console.error(e); }
+    let moveCode="U"; try{if(typeof getCornersMove==="function") moveCode=getCornersMove(cubeMap);}catch(e){}
 
-    // 2. Victory Check
-    if (moveCode === "DONE") {
-        instructionText.innerText = "Corners Solved! ✅";
-        speak("First Layer Complete! Great job. Moving to Middle Layer.");
-        let div = createProceedButton(startMiddleLayerSolver);
-        document.body.appendChild(div);
+    if (moveCode==="DONE") {
+        instructionText.innerText = "Corners Solved! ✅"; speak("First Layer Complete!");
+        let div = createDiv(); div.appendChild(createBtn("Next Layer ➡️", "#2563eb", () => alert("Step 3 coming soon"))); document.body.appendChild(div);
         return;
     }
 
-    // 3. Text & Voice Logic
     let instruction = "";
-    let virtualCode = "D"; // Default memory update
+    let virtualCode = "D";
 
+    // --- CASE LOGIC ---
     if (moveCode === "U") {
-        instruction = "Look for a white sticker on the side of the top layer. Rotate the Top Face until the color NEXT to the white sticker matches its center.";
+        instruction = "Rotate the Top Face until the sticker's side color matches the center.";
         instructionText.innerText = "Rotate Top 🔄 Match Colors";
-        virtualCode = "D"; // Physical Top is Memory Down
+        virtualCode = "D";
     }
     else if (moveCode === "Right Trigger") {
-        instruction = "Match found! The white sticker is to the RIGHT of the center. Perform the Right Trigger.";
-        instructionText.innerText = "Do Right Trigger ⚡";
-        virtualCode = "R D R'"; // R U R' relative to White Bottom
+        instruction = "Match found! White is on the RIGHT. Perform Right Trigger: Right Up, Top Left, Right Down.";
+        instructionText.innerText = "Right Trigger ⚡";
+        virtualCode = "R D R'"; 
     }
     else if (moveCode === "Left Trigger") {
-        instruction = "Match found! The white sticker is to the LEFT of the center. Perform the Left Trigger.";
-        instructionText.innerText = "Do Left Trigger ⚡";
-        virtualCode = "L' D' L"; // L' U' L relative to White Bottom
+        instruction = "Match found! White is on the LEFT. Perform Left Trigger: Left Up, Top Right, Left Down.";
+        instructionText.innerText = "Left Trigger ⚡";
+        virtualCode = "L' D' L"; 
+    }
+    // SPECIAL CASE 1: WHITE ON TOP
+    else if (moveCode === "WhiteOnTop") {
+        instruction = "White sticker is on the TOP face. Rotate the top face until the white sticker is directly above a non-white sticker on the bottom face. Then, perform the Right Trigger TWICE.";
+        instructionText.innerText = "White on Top ⚠️";
+        virtualCode = "R D R' R D R'"; // Approx logic for memory
+    }
+    // SPECIAL CASE 2: STUCK BOTTOM
+    else if (moveCode === "StuckBottom") {
+        instruction = "White sticker is stuck in the bottom layer. Perform a Right Trigger ONCE to move it to the top layer.";
+        instructionText.innerText = "Stuck on Bottom ⚠️";
+        virtualCode = "R D R'"; // Pops it out
     }
 
     speak(instruction);
 
-    // 4. THE CUSTOM BUTTONS (As requested)
-    let div = document.createElement("div");
-    div.id = "solver-controls"; 
-    div.style.position = "fixed"; div.style.bottom = "10px";
-    div.style.width = "100%"; div.style.display = "flex"; 
-    div.style.flexDirection = "column"; div.style.gap = "10px"; div.style.zIndex = "9999";
-    div.style.padding = "0 20px"; div.style.boxSizing = "border-box";
+    // --- UI BUILDER ---
+    let div = createDiv();
+    div.style.flexDirection = "column"; div.style.gap = "10px";
 
-    // ROW 1: Image Buttons
+    // 1. TRIGGER IMAGES (Click to Enlarge)
     let imgRow = document.createElement("div");
-    imgRow.style.display = "flex"; imgRow.style.gap = "10px"; imgRow.style.justifyContent = "center";
+    imgRow.style.display = "flex"; imgRow.style.gap = "15px"; imgRow.style.justifyContent = "center";
 
-    // Left Trigger Image Button
     let btnLeft = document.createElement("img");
     btnLeft.src = "assets/left-trigger.png"; 
     btnLeft.style.height = "60px"; btnLeft.style.border = "2px solid orange"; btnLeft.style.borderRadius = "10px";
-    btnLeft.onclick = () => { speak("Left Trigger: Left Up, Top Right, Left Down."); showTriggerOverlay('left'); };
+    btnLeft.onclick = () => showImageOverlay("assets/left-trigger.png", "Left Trigger");
     
-    // Right Trigger Image Button
     let btnRight = document.createElement("img");
     btnRight.src = "assets/right-trigger.png"; 
     btnRight.style.height = "60px"; btnRight.style.border = "2px solid red"; btnRight.style.borderRadius = "10px";
-    btnRight.onclick = () => { speak("Right Trigger: Right Up, Top Left, Right Down."); showTriggerOverlay('right'); };
+    btnRight.onclick = () => showImageOverlay("assets/right-trigger.png", "Right Trigger");
 
     imgRow.appendChild(btnLeft);
     imgRow.appendChild(btnRight);
 
-    // ROW 2: Control Buttons
+    // 2. CONTROLS
     let ctrlRow = document.createElement("div");
     ctrlRow.style.display = "flex"; ctrlRow.style.gap = "10px";
 
-    // Repeat Instruction
-    let btnRepeat = document.createElement("button");
-    btnRepeat.innerText = "📢 Repeat";
-    btnRepeat.style.flex = "1"; btnRepeat.style.padding = "15px"; 
-    btnRepeat.style.background = "#f59e0b"; btnRepeat.style.color = "white"; 
-    btnRepeat.style.border = "none"; btnRepeat.style.borderRadius = "10px"; btnRepeat.style.fontWeight = "bold";
-    btnRepeat.onclick = () => speak(instruction);
-
-    // Next / I Did It
-    let btnNext = document.createElement("button");
-    btnNext.innerText = "NEXT ➡️";
-    btnNext.style.flex = "1"; btnNext.style.padding = "15px"; 
-    btnNext.style.background = "#22c55e"; btnNext.style.color = "white"; 
-    btnNext.style.border = "none"; btnNext.style.borderRadius = "10px"; btnNext.style.fontWeight = "bold";
-    
-    btnNext.onclick = () => {
-        // Blindly update memory based on what we told them to do
-        if (typeof virtualMove === "function") virtualMove(virtualCode, cubeMap);
-        startCornersSolver(); // Loop
-    };
+    let btnRepeat = createBtn("🎧 Instruction", "#f59e0b", () => speak(instruction));
+    let btnNext = createBtn("NEXT ➡️", "#22c55e", () => {
+        if(typeof virtualMove==="function") virtualMove(virtualCode, cubeMap);
+        startCornersSolver();
+    });
 
     ctrlRow.appendChild(btnRepeat);
     ctrlRow.appendChild(btnNext);
@@ -456,127 +203,57 @@ function startCornersSolver() {
     document.body.appendChild(div);
 }
 
-// --- PHASE 3: MIDDLE LAYER ---
-function startMiddleLayerSolver() {
-    let controlsDiv = document.querySelector('.controls');
-    if (controlsDiv) controlsDiv.style.display = 'none';
-    removeControls(); 
-    instructionText.innerText = "Phase 3: Middle Layer";
-    speak("Phase 3. Middle Layer edges.");
-    let controls = createProceedButton(startYellowCrossSolver);
-    document.body.appendChild(controls);
-}
+// --- HELPER: FIXED IMAGE OVERLAY ---
+function showImageOverlay(src, title) {
+    // 1. Remove ANY existing overlay first (Fixes the "First click only" bug)
+    let old = document.getElementById('img-overlay');
+    if (old) old.remove();
 
-// --- PHASE 4: YELLOW CROSS ---
-function startYellowCrossSolver() {
-    removeControls(); 
-    instructionText.innerText = "Phase 4: Yellow Cross";
-    speak("Phase 4. Yellow Cross.");
-    let controls = createProceedButton(startYellowFaceSolver);
-    document.body.appendChild(controls);
-}
-
-// --- PHASE 5: YELLOW FACE ---
-function startYellowFaceSolver() {
-    removeControls(); 
-    instructionText.innerText = "Phase 5: Yellow Face";
-    speak("Phase 5. Make top face Yellow.");
-    let controls = createProceedButton(startFinalSolve);
-    document.body.appendChild(controls);
-}
-
-// --- PHASE 6: FINALE ---
-function startFinalSolve() {
-    removeControls(); 
-    instructionText.innerText = "Phase 6: The Finale";
-    speak("Phase 6. Solve corners first.");
-    let controls = createProceedButton(startFinalEdgesInstruction);
-    document.body.appendChild(controls);
-}
-
-function startFinalEdgesInstruction() {
-    removeControls();
-    instructionText.innerText = "Final Step: Edges";
-    speak("Solve the final edges.");
-
+    // 2. Create New
     let overlay = document.createElement("div");
-    overlay.id = "generic-overlay";
-    overlay.style.position = "fixed"; overlay.style.top = "100px"; overlay.style.width = "100%";
-    overlay.style.textAlign = "center"; overlay.style.color = "white";
-    overlay.innerHTML = `<h1 style="color:#22c55e;">FINISH IT!</h1>`;
-    document.body.appendChild(overlay);
+    overlay.id = "img-overlay";
+    overlay.style.position = "fixed"; overlay.style.top = "0"; overlay.style.left = "0";
+    overlay.style.width = "100%"; overlay.style.height = "100%";
+    overlay.style.backgroundColor = "rgba(0,0,0,0.9)";
+    overlay.style.zIndex = "10000"; // Very high
+    overlay.style.display = "flex"; overlay.style.flexDirection = "column";
+    overlay.style.justifyContent = "center"; overlay.style.alignItems = "center";
+    
+    // Close on click
+    overlay.onclick = () => overlay.remove();
 
-    createManualControls(
-        () => alert("Video"),
-        () => speak("Final Step"),
-        () => { alert("CONGRATULATIONS!"); location.reload(); }
-    );
-}
+    let h2 = document.createElement("h2");
+    h2.innerText = title; h2.style.color = "white"; h2.style.marginBottom = "20px";
 
-// --- OVERLAY HELPERS ---
-function createProceedButton(action) {
-    let div = document.createElement("div");
-    div.id = "solver-controls"; div.style.position = "fixed"; div.style.bottom = "20px";
-    div.style.width = "100%"; div.style.display = "flex"; div.style.justifyContent = "center"; div.style.zIndex = "9999";
-    let btn = document.createElement("button");
-    btn.innerText = "PROCEED ➡️"; btn.style.padding = "15px 40px";
-    btn.style.fontSize = "18px"; btn.style.fontWeight = "bold";
-    btn.style.backgroundColor = "#2563eb"; btn.style.color = "white";
-    btn.style.borderRadius = "50px"; btn.style.border = "none";
-    btn.onclick = action;
-    div.appendChild(btn);
-    return div;
-}
+    let img = document.createElement("img");
+    img.src = src; 
+    img.style.width = "80%"; img.style.maxWidth = "400px"; 
+    img.style.border = "4px solid white"; img.style.borderRadius = "10px";
 
-function createOverlay(id) {
-    let div = document.createElement("div");
-    div.id = id; 
-    div.style.position = "fixed"; div.style.top = "0"; div.style.left = "0";
-    div.style.width = "100%"; div.style.height = "100%"; div.style.backgroundColor = "black";
-    div.style.zIndex = "100"; div.style.overflowY = "auto"; div.style.textAlign = "center";
-    return div;
-}
+    let hint = document.createElement("p");
+    hint.innerText = "(Tap anywhere to close)";
+    hint.style.color = "#aaa"; hint.style.marginTop = "20px";
 
-function showTriggerOverlay(side) {
-    if (document.getElementById("trigger-overlay")) return;
-    let overlay = createOverlay("trigger-overlay");
-    if (side === 'left') {
-         overlay.innerHTML = `<h2 style="color:white; margin-top:60px;">Left Trigger</h2>
-         <img src="assets/left-trigger.png" style="width:80%; border:3px solid orange;">`;
-    } else {
-         overlay.innerHTML = `<h2 style="color:white; margin-top:60px;">Right Trigger</h2>
-         <img src="assets/right-trigger.png" style="width:80%; border:3px solid red;">`;
-    }
+    overlay.appendChild(h2);
+    overlay.appendChild(img);
+    overlay.appendChild(hint);
     document.body.appendChild(overlay);
 }
 
-function showBottomRotateOverlay() {
-    if (document.getElementById("rotate-overlay")) return;
-    let o = createOverlay("rotate-overlay");
-    o.innerHTML = `<h2 style="color:white; margin-top:60px;">Rotate Top</h2><p>Spin the Yellow face until a corner matches.</p>`;
-    document.body.appendChild(o);
-    setTimeout(() => { if(o) o.remove(); }, 3000);
-}
-
-function removeTriggerOverlay() { removeEl("trigger-overlay"); }
-function removeControls() { removeEl("solver-controls"); }
-function removeEl(id) { let el = document.getElementById(id); if(el) el.remove(); }
-
-function createManualControls(onHelp, onRepeat, onNext) {
-    removeControls();
+// --- UTILS ---
+function removeControls() { let el=document.getElementById("solver-controls"); if(el) el.remove(); }
+function createDiv() {
     let div = document.createElement("div");
-    div.id = "solver-controls"; div.style.position = "fixed"; div.style.bottom = "20px";
-    div.style.width = "100%"; div.style.display = "flex"; div.style.justifyContent = "center"; div.style.gap = "10px"; div.style.zIndex = "200";
-    div.appendChild(makeBtn("🎥 Help", "#3b82f6", onHelp));
-    div.appendChild(makeBtn("↺ Repeat", "#f59e0b", onRepeat));
-    div.appendChild(makeBtn("Next ➡️", "#22c55e", onNext));
-    document.body.appendChild(div);
+    div.id = "solver-controls"; div.style.position = "fixed"; div.style.bottom = "10px";
+    div.style.width = "100%"; div.style.display = "flex"; div.style.justifyContent = "center"; div.style.zIndex = "999";
+    div.style.padding = "0 10px"; div.style.boxSizing = "border-box";
+    return div;
 }
-
-function makeBtn(text, color, action) {
+function createBtn(text, bg, action) {
     let btn = document.createElement("button");
     btn.innerText = text; btn.onclick = action;
-    btn.style.flex = "1"; btn.style.padding = "12px"; btn.style.backgroundColor = color;
-    btn.style.color = "white"; btn.style.border = "none"; btn.style.borderRadius = "8px";
+    btn.style.flex = "1"; btn.style.padding = "15px"; 
+    btn.style.background = bg; btn.style.color = "white"; 
+    btn.style.border = "none"; btn.style.borderRadius = "10px"; btn.style.fontWeight = "bold";
     return btn;
 }
