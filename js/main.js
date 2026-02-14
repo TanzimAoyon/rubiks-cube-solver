@@ -301,50 +301,81 @@ function startDaisySolver() {
 }
 
 // --- PHASE 1.5: WHITE CROSS (MANUAL INSTRUCTION MODE) ---
+// --- PHASE 1.5: WHITE CROSS (Using cross-solver.js) ---
 function startWhiteCross() {
-    // 1. Hide the Scan Button
-    if (scanBtn) scanBtn.style.display = "none";
-    removeControls(); // Clear old controls
+    // 1. Get the Move from your file
+    let move = "DONE";
+    try {
+        if (typeof getCrossMove === "function") {
+            move = getCrossMove(cubeMap);
+        } else {
+            console.error("Missing cross-solver.js!");
+            return;
+        }
+    } catch (e) { console.error(e); }
 
-    // 2. The Explanation
-    const explanation = "Rotate the yellow top face until a white petal's side color matches the center color below it. When it matches, rotate that face 180 degrees downwards. Do this for all four petals.";
+    // 2. Victory Check
+    if (move === "DONE") {
+        speak("Cross completed! Great job. Proceeding to corners.");
+        instructionText.innerText = "Cross Done! ✅";
+        
+        let div = createProceedButton(startCornersSolver);
+        document.body.appendChild(div);
+        return;
+    }
 
-    // 3. UI Updates
-    instructionText.innerText = "Match Side Colors & Turn Down 2x";
-    speak(explanation);
+    // 3. Instruction Logic
+    // Case A: Setup Move (Rotate Top)
+    if (move === "U") {
+        instructionText.innerText = "Rotate Top 🔄 (Finding Match)";
+        speak("Rotate the Yellow Top Clockwise once to find a match.");
+    } 
+    // Case B: Setup Move (Rotate Bottom - if your logic uses it)
+    else if (move === "D") {
+        instructionText.innerText = "Rotate Bottom 🔄";
+        speak("Rotate the Yellow Face Clockwise.");
+    }
+    // Case C: The Drop (Turn 2 Times)
+    else if (move.includes("2")) {
+        let faceLetter = move[0];
+        let colorName = "";
+        
+        if (faceLetter === 'F') colorName = "Green";
+        if (faceLetter === 'R') colorName = "Red";
+        if (faceLetter === 'L') colorName = "Orange";
+        if (faceLetter === 'B') colorName = "Blue";
+        
+        instructionText.innerText = `Match! Turn ${colorName} 2x`;
+        speak(`Match found on ${colorName}! Turn the ${colorName} face two times to bring the white petal down.`);
+    } 
+    // Case D: Any other move (Fallback)
+    else {
+        instructionText.innerText = `Perform Move: ${move}`;
+        speak(`Perform the move: ${move}`);
+    }
+    
+    // 4. Update Memory
+    if (typeof virtualMove === "function") {
+        virtualMove(move, cubeMap);
+    }
 
-    // 4. Create Custom Buttons for this Step
+    // 5. Setup Next Button
+    // We remove old controls first to avoid duplicates
+    removeControls();
+    
     let div = document.createElement("div");
-    div.id = "solver-controls"; 
-    div.style.position = "fixed"; div.style.bottom = "20px";
-    div.style.width = "100%"; div.style.display = "flex"; 
-    div.style.justifyContent = "center"; div.style.gap = "15px"; 
-    div.style.zIndex = "9999";
+    div.id = "solver-controls"; div.style.position = "fixed"; div.style.bottom = "20px";
+    div.style.width = "100%"; div.style.display = "flex"; div.style.justifyContent = "center"; div.style.zIndex = "200";
     
-    // Button 1: Explain Again
-    let btnHelp = document.createElement("button");
-    btnHelp.innerText = "🎧 INSTRUCTION"; 
-    btnHelp.style.padding = "15px 20px";
-    btnHelp.style.fontSize = "16px"; btnHelp.style.fontWeight = "bold";
-    btnHelp.style.backgroundColor = "#f59e0b"; // Orange
-    btnHelp.style.color = "white";
-    btnHelp.style.borderRadius = "50px"; btnHelp.style.border = "none";
-    btnHelp.onclick = () => speak(explanation);
-
-    // Button 2: I Did It (Proceed)
-    let btnNext = document.createElement("button");
-    btnNext.innerText = "✅ I DID IT"; 
-    btnNext.style.padding = "15px 30px";
-    btnNext.style.fontSize = "18px"; btnNext.style.fontWeight = "bold";
-    btnNext.style.backgroundColor = "#22c55e"; // Green
-    btnNext.style.color = "white";
-    btnNext.style.borderRadius = "50px"; btnNext.style.border = "none";
+    let btn = document.createElement("button");
+    btn.innerText = "I DID IT (NEXT) ➡️"; 
+    btn.style.padding = "15px 40px"; btn.style.fontSize = "18px"; btn.style.fontWeight = "bold";
+    btn.style.backgroundColor = "#2563eb"; btn.style.color = "white";
+    btn.style.borderRadius = "50px"; btn.style.border = "none";
     
-    // Move to next step
-    btnNext.onclick = startCornersSolver;
-
-    div.appendChild(btnHelp);
-    div.appendChild(btnNext);
+    btn.onclick = startWhiteCross; // Loop back to check next move
+    
+    div.appendChild(btn);
     document.body.appendChild(div);
 }
 
