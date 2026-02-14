@@ -344,25 +344,28 @@ function startWhiteCross() {
 }
 
 // --- PHASE 2: CORNERS (Uses corners-solver.js) ---
+// --- PHASE 2: CORNERS (Fixed UI & Logic) ---
 function startCornersSolver() {
     let controlsDiv = document.querySelector('.controls');
     if (controlsDiv) controlsDiv.style.display = 'none';
     removeControls();
     
-    // 0. Initial Instruction (One time)
+    // 0. Flip Instruction (Run once)
     if (!window.hasFlipped) {
-        speak("Now, flip the cube over. White Cross on BOTTOM. Yellow on TOP.");
+        speak("Now, flip the cube completely over. White Cross should be on the BOTTOM. Yellow on TOP.");
         alert("FLIP CUBE: White on Bottom, Yellow on Top.");
         window.hasFlipped = true;
     }
 
-    let moveCode = "D";
+    // 1. Get Move from Logic
+    let moveCode = "U";
     try {
         if (typeof getCornersMove === "function") {
             moveCode = getCornersMove(cubeMap);
         }
     } catch(e) { console.error(e); }
 
+    // 2. Victory Check
     if (moveCode === "DONE") {
         instructionText.innerText = "Corners Solved! ✅";
         speak("First Layer Complete! Great job. Moving to Middle Layer.");
@@ -371,49 +374,85 @@ function startCornersSolver() {
         return;
     }
 
-    // Map your file's return codes to Virtual Moves & Instructions
-    let virtualCode = "D"; 
+    // 3. Text & Voice Logic
+    let instruction = "";
+    let virtualCode = "D"; // Default memory update
 
-    if (moveCode === "D" || moveCode === "Top Twist") {
-        // Physical Top = Memory Down (Yellow)
-        instructionText.innerText = "Rotate Top Layer 🔄";
-        speak("Rotate the Yellow Top layer to find a match.");
-        virtualCode = "D"; 
+    if (moveCode === "U") {
+        instruction = "Look for a white sticker on the side of the top layer. Rotate the Top Face until the color NEXT to the white sticker matches its center.";
+        instructionText.innerText = "Rotate Top 🔄 Match Colors";
+        virtualCode = "D"; // Physical Top is Memory Down
     }
     else if (moveCode === "Right Trigger") {
-        instructionText.innerText = "Right Trigger ⚡";
-        speak("Do Right Trigger: Right Up, Top Push, Right Down.");
-        showTriggerOverlay("right"); 
-        // Virtual: R U' R' (Based on your text)
-        virtualCode = "R U' R'";
+        instruction = "Match found! The white sticker is to the RIGHT of the center. Perform the Right Trigger.";
+        instructionText.innerText = "Do Right Trigger ⚡";
+        virtualCode = "R D R'"; // R U R' relative to White Bottom
     }
     else if (moveCode === "Left Trigger") {
-        instructionText.innerText = "Left Trigger ⚡";
-        speak("Do Left Trigger: Left Up, Top Push, Left Down.");
-        showTriggerOverlay("left");
-        // Virtual: L' U L (Based on your text)
-        virtualCode = "L' U L";
+        instruction = "Match found! The white sticker is to the LEFT of the center. Perform the Left Trigger.";
+        instructionText.innerText = "Do Left Trigger ⚡";
+        virtualCode = "L' D' L"; // L' U' L relative to White Bottom
     }
 
-    // NEXT BUTTON
+    speak(instruction);
+
+    // 4. THE CUSTOM BUTTONS (As requested)
     let div = document.createElement("div");
-    div.id = "solver-controls"; div.style.position = "fixed"; div.style.bottom = "20px";
-    div.style.width = "100%"; div.style.display = "flex"; div.style.justifyContent = "center"; div.style.zIndex = "200";
+    div.id = "solver-controls"; 
+    div.style.position = "fixed"; div.style.bottom = "10px";
+    div.style.width = "100%"; div.style.display = "flex"; 
+    div.style.flexDirection = "column"; div.style.gap = "10px"; div.style.zIndex = "9999";
+    div.style.padding = "0 20px"; div.style.boxSizing = "border-box";
+
+    // ROW 1: Image Buttons
+    let imgRow = document.createElement("div");
+    imgRow.style.display = "flex"; imgRow.style.gap = "10px"; imgRow.style.justifyContent = "center";
+
+    // Left Trigger Image Button
+    let btnLeft = document.createElement("img");
+    btnLeft.src = "assets/left-trigger.png"; 
+    btnLeft.style.height = "60px"; btnLeft.style.border = "2px solid orange"; btnLeft.style.borderRadius = "10px";
+    btnLeft.onclick = () => { speak("Left Trigger: Left Up, Top Right, Left Down."); showTriggerOverlay('left'); };
     
-    let btn = document.createElement("button");
-    btn.innerText = "NEXT ➡️"; 
-    btn.style.padding = "15px 40px"; btn.style.fontSize = "18px"; btn.style.fontWeight = "bold";
-    btn.style.backgroundColor = "#2563eb"; btn.style.color = "white";
-    btn.style.borderRadius = "50px"; btn.style.border = "none";
+    // Right Trigger Image Button
+    let btnRight = document.createElement("img");
+    btnRight.src = "assets/right-trigger.png"; 
+    btnRight.style.height = "60px"; btnRight.style.border = "2px solid red"; btnRight.style.borderRadius = "10px";
+    btnRight.onclick = () => { speak("Right Trigger: Right Up, Top Left, Right Down."); showTriggerOverlay('right'); };
+
+    imgRow.appendChild(btnLeft);
+    imgRow.appendChild(btnRight);
+
+    // ROW 2: Control Buttons
+    let ctrlRow = document.createElement("div");
+    ctrlRow.style.display = "flex"; ctrlRow.style.gap = "10px";
+
+    // Repeat Instruction
+    let btnRepeat = document.createElement("button");
+    btnRepeat.innerText = "📢 Repeat";
+    btnRepeat.style.flex = "1"; btnRepeat.style.padding = "15px"; 
+    btnRepeat.style.background = "#f59e0b"; btnRepeat.style.color = "white"; 
+    btnRepeat.style.border = "none"; btnRepeat.style.borderRadius = "10px"; btnRepeat.style.fontWeight = "bold";
+    btnRepeat.onclick = () => speak(instruction);
+
+    // Next / I Did It
+    let btnNext = document.createElement("button");
+    btnNext.innerText = "NEXT ➡️";
+    btnNext.style.flex = "1"; btnNext.style.padding = "15px"; 
+    btnNext.style.background = "#22c55e"; btnNext.style.color = "white"; 
+    btnNext.style.border = "none"; btnNext.style.borderRadius = "10px"; btnNext.style.fontWeight = "bold";
     
-    btn.onclick = () => {
-        if (typeof virtualMove === "function") {
-            virtualMove(virtualCode, cubeMap);
-        }
-        startCornersSolver(); // Recursion
+    btnNext.onclick = () => {
+        // Blindly update memory based on what we told them to do
+        if (typeof virtualMove === "function") virtualMove(virtualCode, cubeMap);
+        startCornersSolver(); // Loop
     };
-    
-    div.appendChild(btn);
+
+    ctrlRow.appendChild(btnRepeat);
+    ctrlRow.appendChild(btnNext);
+
+    div.appendChild(imgRow);
+    div.appendChild(ctrlRow);
     document.body.appendChild(div);
 }
 
