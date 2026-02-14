@@ -91,108 +91,125 @@ function scanFace() {
         isScanning=false; scanBtn.innerText="SCAN SIDE";
     } else {
         isScanning=false;
-        speak("Daisy found. Let's solve."); startWhiteCross();
+        // Check Daisy from Memory
+        let daisyFound = false;
+        if (typeof isDaisySolved === 'function') {
+            daisyFound = isDaisySolved(cubeMap);
+        } else {
+            let down = cubeMap.down; 
+            if (down && down.length >= 9) daisyFound = (down[4] === 'Y' && down[1] === 'W' && down[3] === 'W' && down[5] === 'W' && down[7] === 'W');
+        }
+
+        if (daisyFound) {
+            speak("Great! Daisy found. Let's make the White Cross.");
+            instructionText.innerText = "Great! Daisy Found! ✅";
+            setTimeout(() => { startWhiteCross(); }, 2000);
+        } else {
+            instructionText.innerText = "Daisy Not Found. Let's make one.";
+            speak("Daisy not found. Please make a daisy. Keep the yellow block in the center, and four white petals around it.");
+            scanBtn.innerText = "START DAISY";
+            scanBtn.onclick = startDaisySolver;
+        }
     }
 }
 
-// --- PHASE 1 & 1.5 ---
+// --- PHASE 1: DAISY CHECK ---
+function startDaisySolver() {
+    let daisyFound = false;
+    if (typeof isDaisySolved === 'function') daisyFound = isDaisySolved(cubeMap);
+
+    if (daisyFound) {
+        speak("Daisy is perfect! Moving to White Cross.");
+        startWhiteCross();
+        return;
+    }
+    instructionText.innerText = "Step 1: Make the Daisy.";
+    instructionText.style.color = "yellow";
+    speak("Make a daisy by keeping the yellow block in the center, and 4 white petals.");
+    scanBtn.innerText = "I DID IT -> RE-SCAN";
+    scanBtn.className = "w-full bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg"; 
+    scanBtn.onclick = () => { currentSideIndex = 0; scanOrder.forEach(side => cubeMap[side] = []); enterMainApp(); };
+}
+
+// --- PHASE 1.5: WHITE CROSS (MEMORY / LOGIC) ---
 function startWhiteCross() {
     let c = document.querySelector('.controls'); if (c) c.style.display = 'none'; removeControls();
+    
+    // Use Memory to find the Specific Move
     let move="DONE"; try{if(typeof getCrossMove==="function") move=getCrossMove(cubeMap);}catch(e){}
 
-    if (move==="DONE") { speak("Cross done. Corners time."); startCornersSolver(); return; }
+    if (move==="DONE") { speak("Cross done. Proceeding to Corners."); startCornersSolver(); return; }
 
     let txt = `Perform: ${move}`;
-    if(move==="U") txt="Rotate Top 🔄"; if(move==="D") txt="Rotate Bottom 🔄";
+    if(move==="U") txt="Rotate Top 🔄 Match Colors"; 
+    if(move==="D") txt="Rotate Bottom 🔄";
     if(move.includes("2")) txt=`Turn ${move[0] === 'F' ? 'Green' : (move[0] === 'R' ? 'Red' : (move[0] === 'L' ? 'Orange' : 'Blue'))} Face 2x`;
     
     instructionText.innerText = txt; speak(txt);
 
     let div = createDiv();
     let btn = createBtn("NEXT ➡️", "#22c55e", () => {
+        // Update Memory and Loop
         if(typeof virtualMove==="function") virtualMove(move, cubeMap);
         startWhiteCross();
     });
     div.appendChild(btn); document.body.appendChild(div);
 }
 
-// --- PHASE 2: CORNERS (UPDATED TEXT & LOGIC) ---
+// --- PHASE 2: CORNERS (TEACHER MODE - NO SCAN/LOGIC) ---
 function startCornersSolver() {
     let c = document.querySelector('.controls'); if (c) c.style.display = 'none'; removeControls();
     
-    if (!window.hasFlipped) { speak("Flip cube: White on Bottom, Yellow on Top."); alert("FLIP: White Bottom, Yellow Top"); window.hasFlipped=true; }
-
-    let moveCode="NeedMatch"; try{if(typeof getCornersMove==="function") moveCode=getCornersMove(cubeMap);}catch(e){}
-
-    if (moveCode==="DONE") {
-        instructionText.innerText = "Corners Solved! ✅"; speak("First Layer Complete!");
-        let div = createDiv(); div.appendChild(createBtn("Next Layer ➡️", "#2563eb", () => alert("Step 3 coming soon"))); document.body.appendChild(div);
-        return;
+    // 0. Initial Flip Instruction
+    if (!window.hasFlipped) { 
+        speak("Now, flip the cube over. White Cross should be on the BOTTOM. Yellow on TOP."); 
+        alert("FLIP CUBE: White on Bottom, Yellow on Top."); 
+        window.hasFlipped=true; 
     }
 
-    let instruction = "";
-    let virtualCode = "D";
+    // 1. Display General Instruction (Teacher Mode)
+    const mainInstruction = "Identify color next to white. Rotate Top until it matches center. If Right -> Right Trigger. If Left -> Left Trigger.";
+    instructionText.innerText = "Match Colors & Trigger";
+    speak("Identify the color next to the white sticker. Rotate the top face until this color diagonally matches the center piece of the same color. If the corner is to the right, do Right Trigger. If to the left, do Left Trigger.");
 
-    // --- CASE LOGIC ---
-    if (moveCode === "NeedMatch") {
-        instruction = "Identify the color next to the white sticker. Rotate the top face until this color diagonally matches the center piece of the same color. if theThe corner sticker is to the right of its center. Perform the Right Trigger , if The corner sticker is to the left of its center. Perform the Left Trigger";
-        instructionText.innerText = "Match Adjacent Colors 🔄";
-        virtualCode = "D"; // Physical Top rotation
-    }
-    else if (moveCode === "Right Trigger") {
-        instruction = "The corner sticker is to the right of its center. Perform the Right Trigger.";
-        instructionText.innerText = "Right Trigger ⚡";
-        virtualCode = "R D R'"; 
-    }
-    else if (moveCode === "Left Trigger") {
-        instruction = "The corner sticker is to the left of its center. Perform the Left Trigger.";
-        instructionText.innerText = "Left Trigger ⚡";
-        virtualCode = "L' D' L"; 
-    }
-    // SPECIAL CASE 1: WHITE ON TOP
-    else if (moveCode === "WhiteOnTop") {
-        instruction = "White sticker is on top. Rotate top face until it's above a non-white bottom sticker. Then perform the trigger move twice.";
-        instructionText.innerText = "White on Top ⚠️";
-        virtualCode = "R D R' R D R'"; 
-    }
-    // SPECIAL CASE 2: STUCK BOTTOM
-    else if (moveCode === "StuckBottom") {
-        instruction = "White sticker is on the bottom layer. Perform the trigger move once to move it to the top layer.";
-        instructionText.innerText = "Stuck on Bottom ⚠️";
-        virtualCode = "R D R'"; 
-    }
-
-    speak(instruction);
-
-    // --- UI BUILDER ---
+    // 2. UI Builder
     let div = createDiv();
     div.style.flexDirection = "column"; div.style.gap = "10px";
 
-    // 1. TRIGGER IMAGES
+    // TRIGGER IMAGES (Click to Speak & Show Large)
     let imgRow = document.createElement("div");
     imgRow.style.display = "flex"; imgRow.style.gap = "15px"; imgRow.style.justifyContent = "center";
 
     let btnLeft = document.createElement("img");
     btnLeft.src = "assets/left-trigger.png"; 
     btnLeft.style.height = "60px"; btnLeft.style.border = "2px solid orange"; btnLeft.style.borderRadius = "10px";
-    btnLeft.onclick = () => showImageOverlay("assets/left-trigger.png", "Left Trigger");
+    btnLeft.onclick = () => { 
+        speak("Left Trigger: Left Up. Top Right. Left Down."); 
+        showImageOverlay("assets/left-trigger.png", "Left Trigger (L' U L)"); 
+    };
     
     let btnRight = document.createElement("img");
     btnRight.src = "assets/right-trigger.png"; 
     btnRight.style.height = "60px"; btnRight.style.border = "2px solid red"; btnRight.style.borderRadius = "10px";
-    btnRight.onclick = () => showImageOverlay("assets/right-trigger.png", "Right Trigger");
+    btnRight.onclick = () => { 
+        speak("Right Trigger: Right Up. Top Left. Right Down."); 
+        showImageOverlay("assets/right-trigger.png", "Right Trigger (R U' R')"); 
+    };
 
     imgRow.appendChild(btnLeft);
     imgRow.appendChild(btnRight);
 
-    // 2. CONTROLS
+    // CONTROLS
     let ctrlRow = document.createElement("div");
     ctrlRow.style.display = "flex"; ctrlRow.style.gap = "10px";
 
-    let btnRepeat = createBtn("🎧 Repeat", "#f59e0b", () => speak(instruction));
-    let btnNext = createBtn("NEXT ➡️", "#22c55e", () => {
-        if(typeof virtualMove==="function") virtualMove(virtualCode, cubeMap);
-        startCornersSolver();
+    let btnRepeat = createBtn("🎧 Instruction", "#f59e0b", () => speak(mainInstruction));
+    
+    // "Next Layer" Button - Since we aren't tracking memory anymore, 
+    // the user decides when they are done with corners.
+    let btnNext = createBtn("Next Layer ➡️", "#2563eb", () => {
+        let confirmNext = confirm("Are all white corners solved?");
+        if(confirmNext) startMiddleLayerSolver();
     });
 
     ctrlRow.appendChild(btnRepeat);
@@ -203,9 +220,19 @@ function startCornersSolver() {
     document.body.appendChild(div);
 }
 
+// --- PHASE 3: MIDDLE LAYER ---
+function startMiddleLayerSolver() {
+    let c = document.querySelector('.controls'); if (c) c.style.display = 'none'; removeControls();
+    instructionText.innerText = "Phase 3: Middle Layer";
+    speak("Phase 3. Solve the Middle Layer edges.");
+    let div = createDiv();
+    div.appendChild(createBtn("Proceed ➡️", "#2563eb", () => alert("Step 3 Logic Coming Soon")));
+    document.body.appendChild(div);
+}
+
 // --- HELPER: FIXED IMAGE OVERLAY ---
 function showImageOverlay(src, title) {
-    let old = document.getElementById('img-overlay'); if (old) old.remove(); // Fix duplicate bug
+    let old = document.getElementById('img-overlay'); if (old) old.remove();
     let overlay = document.createElement("div");
     overlay.id = "img-overlay";
     overlay.style.position = "fixed"; overlay.style.top = "0"; overlay.style.left = "0";
