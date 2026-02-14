@@ -169,7 +169,7 @@ function startCornersSolver() {
     }
 
     // 1. Define Instructions
-    const mainInstruction = "look for white stickers on top yellow layer that are facing outwards, For each white corner piece, identify the color next to the white sticker. Rotate the top face until this color diagonally matches the center piece of the same color. If the corner sticker is to the left of its center sticker, use the left trigger, If the corner sticker is to the right of its center sticker, use the right trigger";;
+    const mainInstruction = "look for white stickers on top yellow layer that are facing outwards, For each white corner piece, identify the color next to the white sticker. Rotate the top face until this color diagonally matches the center piece of the same color. If the corner sticker is to the left of its center sticker, use the left trigger, If the corner sticker is to the right of its center sticker, use the right trigger. Look for the spacial cases when white sticker is stuck on bottom layer side, or top face";;
     
     const stuckInstruction = "If a white sticker is in the bottom layer, perform the appropriate trigger move once to move it to the top layer, facing outward.";
     
