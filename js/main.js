@@ -217,10 +217,12 @@ function scanFace() {
     } else {
         isScanning = false;
         
+        // CHECK DAISY
         let daisyFound = false;
         if (typeof isDaisySolved === 'function') {
             daisyFound = isDaisySolved(cubeMap);
         } else {
+             // Fallback Logic
              let down = cubeMap.down; 
              if (down && down.length >= 9) {
                  daisyFound = (down[4] === 'Y' && down[1] === 'W' && down[3] === 'W' && down[5] === 'W' && down[7] === 'W');
@@ -269,9 +271,9 @@ function startDaisySolver() {
     };
 }
 
-// --- PHASE 1.5: WHITE CROSS (BLIND PILOT MODE) ---
+// --- PHASE 1.5: WHITE CROSS ---
 function startWhiteCross() {
-    // 1. CLEANUP UI: Force Hide the Yellow Scan Button Container
+    // 1. CLEANUP UI
     let controlsDiv = document.querySelector('.controls');
     if (controlsDiv) controlsDiv.style.display = 'none';
     removeControls(); 
@@ -288,22 +290,12 @@ function startWhiteCross() {
     if (move === "DONE") {
         speak("Cross completed! Great job. Proceeding to corners.");
         instructionText.innerText = "Cross Done! ✅";
-        
-        // Show Proceed Button
-        let div = document.createElement("div");
-        div.id = "solver-controls"; div.style.position = "fixed"; div.style.bottom = "20px";
-        div.style.width = "100%"; div.style.display = "flex"; div.style.justifyContent = "center"; div.style.zIndex = "9999";
-        let btn = document.createElement("button");
-        btn.innerText = "GO TO CORNERS ➡️"; 
-        btn.style.padding = "15px 40px"; btn.style.fontSize = "18px"; btn.style.fontWeight = "bold";
-        btn.style.backgroundColor = "#2563eb"; btn.style.color = "white"; btn.style.borderRadius = "50px"; btn.style.border = "none";
-        btn.onclick = startCornersSolver;
-        div.appendChild(btn);
+        let div = createProceedButton(startCornersSolver);
         document.body.appendChild(div);
         return;
     }
 
-    // 4. INSTRUCTION LOGIC (No Camera Checks)
+    // 4. INSTRUCTION LOGIC
     if (move === "U") {
         instructionText.innerText = "Rotate Top 🔄 (Finding Match)";
         speak("Rotate the Yellow Top Clockwise once.");
@@ -328,7 +320,7 @@ function startWhiteCross() {
         speak(`Perform the move: ${move}`);
     }
 
-    // 5. BLIND BUTTON (Next Step)
+    // 5. NEXT BUTTON (Blind Update)
     let div = document.createElement("div");
     div.id = "solver-controls"; 
     div.style.position = "fixed"; div.style.bottom = "20px";
@@ -340,24 +332,30 @@ function startWhiteCross() {
     btnNext.style.backgroundColor = "#22c55e"; btnNext.style.color = "white";
     btnNext.style.borderRadius = "50px"; btnNext.style.border = "none";
     
-    // ACTION: Update Memory & Loop
     btnNext.onclick = () => {
         if (typeof virtualMove === "function") {
-            virtualMove(move, cubeMap); // Trust the user did it
+            virtualMove(move, cubeMap); 
         }
-        startWhiteCross(); // Recursion
+        startWhiteCross(); 
     };
 
     div.appendChild(btnNext);
     document.body.appendChild(div);
 }
 
-// --- PHASE 2: CORNERS ---
+// --- PHASE 2: CORNERS (Uses corners-solver.js) ---
 function startCornersSolver() {
     let controlsDiv = document.querySelector('.controls');
     if (controlsDiv) controlsDiv.style.display = 'none';
     removeControls();
     
+    // 0. Initial Instruction (One time)
+    if (!window.hasFlipped) {
+        speak("Now, flip the cube over. White Cross on BOTTOM. Yellow on TOP.");
+        alert("FLIP CUBE: White on Bottom, Yellow on Top.");
+        window.hasFlipped = true;
+    }
+
     let moveCode = "D";
     try {
         if (typeof getCornersMove === "function") {
@@ -373,32 +371,31 @@ function startCornersSolver() {
         return;
     }
 
+    // Map your file's return codes to Virtual Moves & Instructions
     let virtualCode = "D"; 
 
     if (moveCode === "D" || moveCode === "Top Twist") {
-        instructionText.innerText = "Rotate Bottom (Yellow) 🔄";
-        speak("Rotate the bottom Yellow layer to find a matching corner.");
-        showBottomRotateOverlay(); 
+        // Physical Top = Memory Down (Yellow)
+        instructionText.innerText = "Rotate Top Layer 🔄";
+        speak("Rotate the Yellow Top layer to find a match.");
         virtualCode = "D"; 
     }
     else if (moveCode === "Right Trigger") {
         instructionText.innerText = "Right Trigger ⚡";
-        speak("Perform the Right Trigger: Right Up, Top Push, Right Down.");
+        speak("Do Right Trigger: Right Up, Top Push, Right Down.");
         showTriggerOverlay("right"); 
-        virtualCode = "R U R' U'";
+        // Virtual: R U' R' (Based on your text)
+        virtualCode = "R U' R'";
     }
     else if (moveCode === "Left Trigger") {
         instructionText.innerText = "Left Trigger ⚡";
-        speak("Perform the Left Trigger: Left Up, Top Push, Left Down.");
+        speak("Do Left Trigger: Left Up, Top Push, Left Down.");
         showTriggerOverlay("left");
-        virtualCode = "L' U' L U";
+        // Virtual: L' U L (Based on your text)
+        virtualCode = "L' U L";
     }
 
-    // BLIND UPDATE MEMORY
-    if (typeof virtualMove === "function") {
-        virtualMove(virtualCode, cubeMap);
-    }
-
+    // NEXT BUTTON
     let div = document.createElement("div");
     div.id = "solver-controls"; div.style.position = "fixed"; div.style.bottom = "20px";
     div.style.width = "100%"; div.style.display = "flex"; div.style.justifyContent = "center"; div.style.zIndex = "200";
@@ -409,7 +406,12 @@ function startCornersSolver() {
     btn.style.backgroundColor = "#2563eb"; btn.style.color = "white";
     btn.style.borderRadius = "50px"; btn.style.border = "none";
     
-    btn.onclick = startCornersSolver; 
+    btn.onclick = () => {
+        if (typeof virtualMove === "function") {
+            virtualMove(virtualCode, cubeMap);
+        }
+        startCornersSolver(); // Recursion
+    };
     
     div.appendChild(btn);
     document.body.appendChild(div);
@@ -512,7 +514,7 @@ function showTriggerOverlay(side) {
 function showBottomRotateOverlay() {
     if (document.getElementById("rotate-overlay")) return;
     let o = createOverlay("rotate-overlay");
-    o.innerHTML = `<h2 style="color:white; margin-top:60px;">Rotate Bottom</h2><p>Spin the Yellow face until a corner matches.</p>`;
+    o.innerHTML = `<h2 style="color:white; margin-top:60px;">Rotate Top</h2><p>Spin the Yellow face until a corner matches.</p>`;
     document.body.appendChild(o);
     setTimeout(() => { if(o) o.remove(); }, 3000);
 }
