@@ -157,6 +157,7 @@ function startWhiteCross() {
 }
 
 // --- PHASE 2: CORNERS (TEACHER MODE - NO SCAN/LOGIC) ---
+// --- PHASE 2: CORNERS (TEACHER MODE WITH SPECIAL CASES) ---
 function startCornersSolver() {
     let c = document.querySelector('.controls'); if (c) c.style.display = 'none'; removeControls();
     
@@ -167,16 +168,22 @@ function startCornersSolver() {
         window.hasFlipped=true; 
     }
 
-    // 1. Display General Instruction (Teacher Mode)
-    const mainInstruction = "Identify color next to white. Rotate Top until it matches center. If Right -> Right Trigger. If Left -> Left Trigger.";
+    // 1. Define Instructions
+    const mainInstruction = "look for white stickers on top yellow layer that are facing outwards, For each white corner piece, identify the color next to the white sticker. Rotate the top face until this color diagonally matches the center piece of the same color. If the corner sticker is to the left of its center sticker, use the left trigger, If the corner sticker is to the right of its center sticker, use the right trigger";;
+    
+    const stuckInstruction = "If a white sticker is in the bottom layer, perform the appropriate trigger move once to move it to the top layer, facing outward.";
+    
+    const topInstruction = "Rotate the top face until the white sticker is directly above a non-white sticker on the bottom face. Then, perform the appropriate trigger move twice.";
+
+    // Set Initial Text
     instructionText.innerText = "Match Colors & Trigger";
-    speak("Identify the color next to the white sticker. Rotate the top face until this color diagonally matches the center piece of the same color. If the corner is to the right, do Right Trigger. If to the left, do Left Trigger.");
+    speak(mainInstruction);
 
     // 2. UI Builder
     let div = createDiv();
     div.style.flexDirection = "column"; div.style.gap = "10px";
 
-    // TRIGGER IMAGES (Click to Speak & Show Large)
+    // --- ROW 1: TRIGGER IMAGES ---
     let imgRow = document.createElement("div");
     imgRow.style.display = "flex"; imgRow.style.gap = "15px"; imgRow.style.justifyContent = "center";
 
@@ -199,14 +206,36 @@ function startCornersSolver() {
     imgRow.appendChild(btnLeft);
     imgRow.appendChild(btnRight);
 
-    // CONTROLS
+    // --- ROW 2: SPECIAL CASES (NEW) ---
+    let specialRow = document.createElement("div");
+    specialRow.style.display = "flex"; specialRow.style.gap = "10px";
+
+    // Button: Stuck Bottom
+    let btnStuck = createBtn("⚠️ Stuck Bottom", "#b91c1c", () => {
+        instructionText.innerText = "Case: White on Bottom";
+        speak(stuckInstruction);
+    });
+    btnStuck.style.fontSize = "14px"; // Make text slightly smaller to fit
+
+    // Button: White Top
+    let btnTop = createBtn("⚠️ White Top", "#b91c1c", () => {
+        instructionText.innerText = "Case: White Facing Up";
+        speak(topInstruction);
+    });
+    btnTop.style.fontSize = "14px";
+
+    specialRow.appendChild(btnStuck);
+    specialRow.appendChild(btnTop);
+
+    // --- ROW 3: MAIN CONTROLS ---
     let ctrlRow = document.createElement("div");
     ctrlRow.style.display = "flex"; ctrlRow.style.gap = "10px";
 
-    let btnRepeat = createBtn("🎧 Instruction", "#f59e0b", () => speak(mainInstruction));
+    let btnRepeat = createBtn("🎧 Main Rules", "#f59e0b", () => {
+        instructionText.innerText = "Match Colors & Trigger";
+        speak(mainInstruction);
+    });
     
-    // "Next Layer" Button - Since we aren't tracking memory anymore, 
-    // the user decides when they are done with corners.
     let btnNext = createBtn("Next Layer ➡️", "#2563eb", () => {
         let confirmNext = confirm("Are all white corners solved?");
         if(confirmNext) startMiddleLayerSolver();
@@ -215,7 +244,9 @@ function startCornersSolver() {
     ctrlRow.appendChild(btnRepeat);
     ctrlRow.appendChild(btnNext);
 
+    // Add all rows to main div
     div.appendChild(imgRow);
+    div.appendChild(specialRow);
     div.appendChild(ctrlRow);
     document.body.appendChild(div);
 }
